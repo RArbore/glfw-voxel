@@ -15,11 +15,14 @@
 #define TEX_SIZE 16.0f/256.0f
 #define PI 3.14159265358979323846
 
+#define ANGLE_SPEED 0.01
+#define MOVE_SPEED 0.01
+
 float vertices[] = {
-     0.5f,  0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 15.0f*TEX_SIZE, 0.0f,
-     0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 15.0f*TEX_SIZE, TEX_SIZE,
-     -0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 16.0f*TEX_SIZE, TEX_SIZE,
-     -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 16.0f*TEX_SIZE, 0.0f,
+     0.0f,  0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 15.0f*TEX_SIZE, 0.0f,
+     0.0f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 15.0f*TEX_SIZE, TEX_SIZE,
+     0.0f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 16.0f*TEX_SIZE, TEX_SIZE,
+     0.0f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 16.0f*TEX_SIZE, 0.0f,
 };
 
 GLuint elements[] = {
@@ -34,7 +37,7 @@ GLint pos_attrib, col_attrib, tex_attrib;
 
 mat4 view_mat, proj_mat;
 
-float x, y, z, theta, phi;
+float x, y, z, theta, phi = PI/2;
 
 void set_tex_coords(int start_vertex, int index) {
     int row = index / texture_width;
@@ -103,7 +106,6 @@ void load_shaders() {
 
 void init_camera() {
     glm_perspective(1.2, ((float) width) / ((float) height), 0.1, 100.0, proj_mat);
-    phi = PI / 2;
 }
 
 void render(GLFWwindow *window) {
@@ -118,10 +120,10 @@ void render(GLFWwindow *window) {
         0, 0, 0, 1,
     };
 
-    glm_rotate(world_mat, ((float) counter) / 100.0f, (vec3){0.0, 1.0, 0.0});
+    //glm_rotate(world_mat, ((float) counter) / 100.0f, (vec3){0.0, 1.0, 0.0});
     glm_translate(world_mat, (vec3){3.0, 0.0, 0.0});
 
-    glm_lookat((vec3){cos(theta)*sin(phi), cos(phi), sin(theta)*sin(phi)}, (vec3){x, y, z}, (vec3){0.0, 1.0, 0.0}, view_mat);
+    glm_look((vec3){x, y, z}, (vec3){cos(theta)*sin(phi), cos(phi), sin(theta)*sin(phi)}, (vec3){0.0, 1.0, 0.0}, view_mat);
 
     trans_attrib = glGetUniformLocation(shader_program, "world_mat");
     glUniformMatrix4fv(trans_attrib, 1, GL_FALSE, (float * ) world_mat);
@@ -141,10 +143,26 @@ void render(GLFWwindow *window) {
 
 void handle_input(GLFWwindow *window) {
     glfwPollEvents();
-    if (glfwGetKey(window, GLFW_KEY_W)) phi -= 0.01;
-    if (glfwGetKey(window, GLFW_KEY_S)) phi += 0.01;
-    if (glfwGetKey(window, GLFW_KEY_A)) theta -= 0.01;
-    if (glfwGetKey(window, GLFW_KEY_D)) theta += 0.01;
+    if (glfwGetKey(window, GLFW_KEY_W)) {
+        x += MOVE_SPEED * cos(theta);
+        z += MOVE_SPEED * sin(theta);
+    }
+    if (glfwGetKey(window, GLFW_KEY_A)) {
+        x += MOVE_SPEED * sin(theta);
+        z -= MOVE_SPEED * cos(theta);
+    }
+    if (glfwGetKey(window, GLFW_KEY_S)) {
+        x -= MOVE_SPEED * cos(theta);
+        z -= MOVE_SPEED * sin(theta);
+    }
+    if (glfwGetKey(window, GLFW_KEY_D)) {
+        x -= MOVE_SPEED * sin(theta);
+        z += MOVE_SPEED * cos(theta);
+    }
+    if (glfwGetKey(window, GLFW_KEY_K)) phi += ANGLE_SPEED;
+    if (glfwGetKey(window, GLFW_KEY_H)) theta -= ANGLE_SPEED;
+    if (glfwGetKey(window, GLFW_KEY_J)) phi -= ANGLE_SPEED;
+    if (glfwGetKey(window, GLFW_KEY_L)) theta += ANGLE_SPEED;
     if (phi < 0) phi = 0;
     if (phi > PI) phi = PI;
     while (theta < 0) theta += 2*PI;
@@ -162,7 +180,7 @@ void tick(GLFWwindow *window) {
 
     gettimeofday(&stop, NULL);
     secs = (double)(stop.tv_usec - start.tv_usec) / 1000000 + (double)(stop.tv_sec - start.tv_sec);
-    printf("FPS: %f %f %f\n",1.0/secs, theta, phi);
+    printf("FPS: %f   X: %f   Y: %f   Z: %f   THETA: %f   PHI: %f\n",1.0/secs, x, y, z, theta, phi);
 }
 
 int main(int argc, char** argv) {
