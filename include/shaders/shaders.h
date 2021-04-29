@@ -5,17 +5,19 @@ const char* vertex_source = R"glsl(
 
     #version 150 core
 
-    in vec2 position;
+    in vec3 position;
     in vec3 color;
     in vec2 texcoord;
 
     out vec3 color1;
     out vec2 texcoord1;
 
+    uniform mat4 transform;
+
     void main() {
         color1 = color;
         texcoord1 = texcoord;
-        gl_Position = vec4(position, 0.0, 1.0);
+        gl_Position = transform * vec4(position, 1.0);
     }
 
 )glsl";

@@ -5,6 +5,9 @@
 
 #include <GL/glut.h>
 #include <GLFW/glfw3.h>
+#include <cglm/cglm.h>
+#include <cglm/call.h>
+#include <cglm/struct.h>
 
 #include "../include/shaders/shaders.h"
 #include "../include/texture.h"
@@ -12,10 +15,10 @@
 #define TEX_SIZE 16.0f/256.0f
 
 float vertices[] = {
-     0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 15.0f*TEX_SIZE, 0.0f,
-     0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 15.0f*TEX_SIZE, TEX_SIZE,
-     -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 16.0f*TEX_SIZE, TEX_SIZE,
-     -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 16.0f*TEX_SIZE, 0.0f,
+     0.5f,  0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 15.0f*TEX_SIZE, 0.0f,
+     0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 15.0f*TEX_SIZE, TEX_SIZE,
+     -0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 16.0f*TEX_SIZE, TEX_SIZE,
+     -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 16.0f*TEX_SIZE, 0.0f,
 };
 
 GLuint elements[] = {
@@ -24,7 +27,7 @@ GLuint elements[] = {
 
 long counter = 0;
 
-GLuint vao, vbo, ebo, tex_atlas, vertex_shader, fragment_shader, shader_program;
+GLuint vao, vbo, ebo, tex_atlas, trans_attrib, vertex_shader, fragment_shader, shader_program;
 GLint pos_attrib, col_attrib, tex_attrib;
 
 void set_tex_coords(int start_vertex, int index) {
@@ -33,8 +36,8 @@ void set_tex_coords(int start_vertex, int index) {
 
     int v;
     for (v = start_vertex; v < start_vertex + 4; v++) {
-        vertices[7 * v + 5] = (v == 0 || v == 1) ? (15 - col) * TEX_SIZE : (16 - col) * TEX_SIZE;
-        vertices[7 * v + 6] = (v == 1 || v == 2) ? (row + 1) * TEX_SIZE : row * TEX_SIZE;
+        vertices[8 * v + 6] = (v == 0 || v == 1) ? (15 - col) * TEX_SIZE : (16 - col) * TEX_SIZE;
+        vertices[8 * v + 7] = (v == 1 || v == 2) ? (row + 1) * TEX_SIZE : row * TEX_SIZE;
     }
 }
 
@@ -60,20 +63,6 @@ GLFWwindow* initialize_window() {
     return window;
 }
 
-void render(GLFWwindow *window) {
-    if (counter % 10 == 0) {
-        set_tex_coords(0, (counter / 10) % 5);
-    }
-
-    glClear(GL_COLOR_BUFFER_BIT);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STREAM_DRAW);
-
-    glDrawElements(GL_QUADS, 4, GL_UNSIGNED_INT, 0);
-
-    glfwSwapBuffers(window);
-}
-
 void load_shaders() {
     vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertex_shader, 1, &vertex_source, NULL);
@@ -92,15 +81,51 @@ void load_shaders() {
 
     pos_attrib = glGetAttribLocation(shader_program, "position");
     glEnableVertexAttribArray(pos_attrib);
-    glVertexAttribPointer(pos_attrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), 0);
+    glVertexAttribPointer(pos_attrib, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 0);
 
     col_attrib = glGetAttribLocation(shader_program, "color");
     glEnableVertexAttribArray(col_attrib);
-    glVertexAttribPointer(col_attrib, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *) (2 * sizeof(float)));
+    glVertexAttribPointer(col_attrib, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) (3 * sizeof(float)));
 
     tex_attrib = glGetAttribLocation(shader_program, "texcoord");
     glEnableVertexAttribArray(tex_attrib);
-    glVertexAttribPointer(tex_attrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void *) (5 * sizeof(float)));
+    glVertexAttribPointer(tex_attrib, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) (6 * sizeof(float)));
+
+
+}
+
+void render(GLFWwindow *window) {
+    if (counter % 10 == 0) {
+        set_tex_coords(0, (counter / 10) % 5);
+    }
+
+    mat4 z_r = {
+        cos(counter / 100.0f), -sin(counter / 100.0f), 0, 0,
+        sin(counter / 100.0f), cos(counter / 100.0f), 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1,
+    };
+
+    mat4 x_r = {
+        1, 0, 0, 0,
+        0, cos(counter / 100.0f), -sin(counter / 100.0f), 0,
+        0, sin(counter / 100.0f), cos(counter / 100.0f), 0,
+        0, 0, 0, 1,
+    };
+
+    mat4 trans;
+    glm_mul(x_r, z_r, trans);
+
+    trans_attrib = glGetUniformLocation(shader_program, "transform");
+    glUniformMatrix4fv(trans_attrib, 1, GL_FALSE, (float * ) trans);
+
+    glClear(GL_COLOR_BUFFER_BIT);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STREAM_DRAW);
+
+    glDrawElements(GL_QUADS, 4, GL_UNSIGNED_INT, 0);
+
+    glfwSwapBuffers(window);
 }
 
 void handle_input() {
@@ -132,17 +157,7 @@ int main(int argc, char** argv) {
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
 
-    glShadeModel(GL_SMOOTH);
-    glClearColor(0, 0, 0, 0);
-    glClearDepth(1);
-    glDepthFunc(GL_LEQUAL);
     glViewport(0, 0, width, height);
-    glEnable(GL_DEPTH_TEST);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluPerspective(45,1,0.1,100);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
 
     glfwSetFramebufferSizeCallback(window, resize_callback);
 
