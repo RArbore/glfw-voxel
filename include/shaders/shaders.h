@@ -12,12 +12,14 @@ const char* vertex_source = R"glsl(
     out vec3 color1;
     out vec2 texcoord1;
 
-    uniform mat4 transform;
+    uniform mat4 world_mat;
+    uniform mat4 view_mat;
+    uniform mat4 proj_mat;
 
     void main() {
         color1 = color;
         texcoord1 = texcoord;
-        gl_Position = transform * vec4(position, 1.0);
+        gl_Position = proj_mat * view_mat * world_mat * vec4(position, 1.0);
     }
 
 )glsl";

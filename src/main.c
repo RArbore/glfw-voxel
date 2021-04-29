@@ -13,6 +13,7 @@
 #include "../include/texture.h"
 
 #define TEX_SIZE 16.0f/256.0f
+#define PI 3.14159265358979323846
 
 float vertices[] = {
      0.5f,  0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 15.0f*TEX_SIZE, 0.0f,
@@ -25,10 +26,15 @@ GLuint elements[] = {
     0, 1, 2, 3,
 };
 
+int width, height;
 long counter = 0;
 
 GLuint vao, vbo, ebo, tex_atlas, trans_attrib, vertex_shader, fragment_shader, shader_program;
 GLint pos_attrib, col_attrib, tex_attrib;
+
+mat4 view_mat, proj_mat;
+
+float x, y, z, theta, phi;
 
 void set_tex_coords(int start_vertex, int index) {
     int row = index / texture_width;
@@ -45,8 +51,11 @@ void error_callback(int error, const char* description) {
     fprintf(stderr, "Error #%d: %s\n", error, description);
 }
 
-void resize_callback(GLFWwindow* window, int width, int height) {
+void resize_callback(GLFWwindow* window, int iwidth, int iheight) {
+    width = iwidth;
+    height = iheight;
     glViewport(0, 0, width, height);
+    init_camera();
     printf("%d %d\n", width, height);
 }
 
@@ -90,8 +99,11 @@ void load_shaders() {
     tex_attrib = glGetAttribLocation(shader_program, "texcoord");
     glEnableVertexAttribArray(tex_attrib);
     glVertexAttribPointer(tex_attrib, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) (6 * sizeof(float)));
+}
 
-
+void init_camera() {
+    glm_perspective(1.2, ((float) width) / ((float) height), 0.1, 100.0, proj_mat);
+    phi = PI / 2;
 }
 
 void render(GLFWwindow *window) {
@@ -99,25 +111,24 @@ void render(GLFWwindow *window) {
         set_tex_coords(0, (counter / 10) % 5);
     }
 
-    mat4 z_r = {
-        cos(counter / 100.0f), -sin(counter / 100.0f), 0, 0,
-        sin(counter / 100.0f), cos(counter / 100.0f), 0, 0,
+    mat4 world_mat = {
+        1, 0, 0, 0,
+        0, 1, 0, 0,
         0, 0, 1, 0,
         0, 0, 0, 1,
     };
 
-    mat4 x_r = {
-        1, 0, 0, 0,
-        0, cos(counter / 100.0f), -sin(counter / 100.0f), 0,
-        0, sin(counter / 100.0f), cos(counter / 100.0f), 0,
-        0, 0, 0, 1,
-    };
+    glm_rotate(world_mat, ((float) counter) / 100.0f, (vec3){0.0, 1.0, 0.0});
+    glm_translate(world_mat, (vec3){3.0, 0.0, 0.0});
 
-    mat4 trans;
-    glm_mul(x_r, z_r, trans);
+    glm_lookat((vec3){cos(theta)*sin(phi), cos(phi), sin(theta)*sin(phi)}, (vec3){x, y, z}, (vec3){0.0, 1.0, 0.0}, view_mat);
 
-    trans_attrib = glGetUniformLocation(shader_program, "transform");
-    glUniformMatrix4fv(trans_attrib, 1, GL_FALSE, (float * ) trans);
+    trans_attrib = glGetUniformLocation(shader_program, "world_mat");
+    glUniformMatrix4fv(trans_attrib, 1, GL_FALSE, (float * ) world_mat);
+    trans_attrib = glGetUniformLocation(shader_program, "view_mat");
+    glUniformMatrix4fv(trans_attrib, 1, GL_FALSE, (float * ) view_mat);
+    trans_attrib = glGetUniformLocation(shader_program, "proj_mat");
+    glUniformMatrix4fv(trans_attrib, 1, GL_FALSE, (float * ) proj_mat);
 
     glClear(GL_COLOR_BUFFER_BIT);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
@@ -128,8 +139,16 @@ void render(GLFWwindow *window) {
     glfwSwapBuffers(window);
 }
 
-void handle_input() {
+void handle_input(GLFWwindow *window) {
     glfwPollEvents();
+    if (glfwGetKey(window, GLFW_KEY_W)) phi -= 0.01;
+    if (glfwGetKey(window, GLFW_KEY_S)) phi += 0.01;
+    if (glfwGetKey(window, GLFW_KEY_A)) theta -= 0.01;
+    if (glfwGetKey(window, GLFW_KEY_D)) theta += 0.01;
+    if (phi < 0) phi = 0;
+    if (phi > PI) phi = PI;
+    while (theta < 0) theta += 2*PI;
+    while (theta >= 2*PI) theta -= 2*PI;
 }
 
 void tick(GLFWwindow *window) {
@@ -138,12 +157,12 @@ void tick(GLFWwindow *window) {
     gettimeofday(&start, NULL);
 
     render(window);
-    handle_input();
+    handle_input(window);
     counter++;
 
     gettimeofday(&stop, NULL);
     secs = (double)(stop.tv_usec - start.tv_usec) / 1000000 + (double)(stop.tv_sec - start.tv_sec);
-    printf("FPS: %f\n",1.0/secs);
+    printf("FPS: %f %f %f\n",1.0/secs, theta, phi);
 }
 
 int main(int argc, char** argv) {
@@ -154,7 +173,6 @@ int main(int argc, char** argv) {
 
     GLFWwindow *window = initialize_window();
 
-    int width, height;
     glfwGetFramebufferSize(window, &width, &height);
 
     glViewport(0, 0, width, height);
@@ -180,6 +198,7 @@ int main(int argc, char** argv) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture_width, texture_height, 0, GL_RGB, GL_FLOAT, texture);
 
     load_shaders();
+    init_camera();
 
     while (!glfwWindowShouldClose(window) && !glfwGetKey(window, GLFW_KEY_ESCAPE)) {
         tick(window);
