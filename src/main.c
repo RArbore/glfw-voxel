@@ -11,12 +11,14 @@
 
 #include "../include/shaders/shaders.h"
 #include "../include/texture.h"
+#include "../include/world.h"
 
 #define TEX_SIZE 16.0f/256.0f
 #define PI 3.14159265358979323846
 
-#define ANGLE_SPEED 0.01
-#define MOVE_SPEED 0.01
+#define ANGLE_SPEED 0.02
+#define MOVE_SPEED 0.02
+#define MIN_PHI 0.0001
 
 float vertices[] = {
      0.0f,  0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 15.0f*TEX_SIZE, 0.0f,
@@ -159,12 +161,18 @@ void handle_input(GLFWwindow *window) {
         x -= MOVE_SPEED * sin(theta);
         z += MOVE_SPEED * cos(theta);
     }
-    if (glfwGetKey(window, GLFW_KEY_K)) phi += ANGLE_SPEED;
+    if (glfwGetKey(window, GLFW_KEY_SPACE)) {
+        y += MOVE_SPEED;
+    }
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT)) {
+        y -= MOVE_SPEED;
+    }
+    if (glfwGetKey(window, GLFW_KEY_K)) phi -= ANGLE_SPEED;
     if (glfwGetKey(window, GLFW_KEY_H)) theta -= ANGLE_SPEED;
-    if (glfwGetKey(window, GLFW_KEY_J)) phi -= ANGLE_SPEED;
+    if (glfwGetKey(window, GLFW_KEY_J)) phi += ANGLE_SPEED;
     if (glfwGetKey(window, GLFW_KEY_L)) theta += ANGLE_SPEED;
-    if (phi < 0) phi = 0;
-    if (phi > PI) phi = PI;
+    if (phi < MIN_PHI) phi = MIN_PHI;
+    if (phi > PI-MIN_PHI) phi = PI-MIN_PHI;
     while (theta < 0) theta += 2*PI;
     while (theta >= 2*PI) theta -= 2*PI;
 }
