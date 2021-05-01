@@ -141,18 +141,26 @@ block_t* world_get_block_c(int r_x, int r_y, int r_z, chunk_t *chunk) {
     return (chunk == NULL) ? NULL : &chunk->blocks[r_x][r_y][r_z];
 }
 
-void get_tex_coords(int start_vertex, int index) {
+void set_vert_base_coords(int start_vertex, int index, float *vertices, int x, int y, int z) {
     int row = index / TEX_WIDTH;
     int col = index % TEX_HEIGHT;
 
     int v;
-    for (v = start_vertex; v < start_vertex + 4; v++) {
-        //vertices[8 * v + 6] = (v == 0 || v == 1) ? (15 - col) * TEX_SIZE : (16 - col) * TEX_SIZE;
-        //vertices[8 * v + 7] = (v == 1 || v == 2) ? (row + 1) * TEX_SIZE : row * TEX_SIZE;
+    for (v = start_vertex; v < start_vertex + 32; v += 8) {
+        vertices[v] = (float) x + 1;
+        vertices[v + 1] = (float) y + 1;
+        vertices[z + 2] = (float) z + 1;
+
+        vertices[v + 3] = 1.0f;
+        vertices[v + 4] = 1.0f;
+        vertices[z + 5] = 1.0f;
+
+        vertices[v + 6] = (v == 0 || v == 1) ? (15 - col) * TEX_SIZE : (16 - col) * TEX_SIZE;
+        vertices[v + 7] = (v == 1 || v == 2) ? (row + 1) * TEX_SIZE : row * TEX_SIZE;
     }
 }
 
-float* world_mesh_assemble(int *size) {
+float* world_full_mesh_assemble(int *size) {
     int hash_index, current_size = 0;
     int vertices_max_size = 8 * STARTING_VERTICES_NUM;
     float *vertices = (float *) malloc(vertices_max_size * sizeof(float));
@@ -169,13 +177,31 @@ float* world_mesh_assemble(int *size) {
             for (r_y = 0; r_y < CHUNK_SIZE; r_y++) {
                 for (r_z = 0; r_z < CHUNK_SIZE; r_z++) {
                     if (chunk->blocks[r_x][r_y][r_z].id == 0) continue;
+                    block_t *to_render = &chunk->blocks[r_x][r_y][r_z];
                     block_t *x_p = world_get_block_c(r_x + 1, r_y, r_z, chunk);
                     block_t *x_n = world_get_block_c(r_x - 1, r_y, r_z, chunk);
                     block_t *y_p = world_get_block_c(r_x, r_y + 1, r_z, chunk);
                     block_t *y_n = world_get_block_c(r_x, r_y - 1, r_z, chunk);
                     block_t *z_p = world_get_block_c(r_x, r_y, r_z + 1, chunk);
                     block_t *z_n = world_get_block_c(r_x, r_y, r_z - 1, chunk);
+                    if (x_p == NULL || x_p->id == 0) {
+                        if (current_size + 32 >= vertices_max_size) {
+                            vertices_max_size *= 2;
+                            vertices = (float *) realloc(vertices, vertices_max_size * sizeof(float));
+                        }
+                        set_vert_base_coords(current_size, block_mesh_faces[to_render->id - 1][1], vertices, s_x + r_x, s_y + r_y, s_z + r_z);
 
+                        vertices[current_size + 9] -= 1.0;
+                        vertices[current_size + 17] -= 1.0;
+                        vertices[current_size + 18] -= 1.0;
+                        vertices[current_size + 26] -= 1.0;
+
+                        for (int old_size = current_size; current_size < old_size + 32; current_size += 8) {
+                            vertices[current_size + 3] = 0.8;
+                            vertices[current_size + 4] = 0.8;
+                            vertices[current_size + 5] = 0.8;
+                        }
+                    }
                 }
             }
         }

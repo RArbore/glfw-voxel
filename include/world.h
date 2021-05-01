@@ -31,7 +31,7 @@ block_t* world_get_block(int, int, int);
 
 block_t* world_get_block_c(int, int, int, chunk_t *);
 
-void get_tex_coords(int, int);
+void set_vert_base_coords(int, int, float *, int, int, int);
 
 float* world_mesh_assemble(int *);
 
