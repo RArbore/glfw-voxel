@@ -225,6 +225,7 @@ int main(int argc, char** argv) {
 
     load_shaders();
     init_camera();
+    initialize_world_hash();
 
     while (!glfwWindowShouldClose(window) && !glfwGetKey(window, GLFW_KEY_ESCAPE)) {
         tick(window);
