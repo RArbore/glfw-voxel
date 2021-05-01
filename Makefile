@@ -10,6 +10,6 @@ WFLAGS=-Wno-implicit-function-declaration
 OUTPUT=voxel-engine.out
 
 main: src/main.c
-	$(CC) $(WFLAGS) -o $(OUTPUT) src/main.c src/glad.c $(CFLAGS)
+	$(CC) $(WFLAGS) -o $(OUTPUT) src/glad.c src/texture.c src/world.c src/main.c $(CFLAGS)
 
 # end

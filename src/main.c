@@ -11,14 +11,8 @@
 
 #include "../include/shaders/shaders.h"
 #include "../include/texture.h"
+#include "../include/constants.h"
 #include "../include/world.h"
-
-#define TEX_SIZE 16.0f/256.0f
-#define PI 3.14159265358979323846
-
-#define ANGLE_SPEED 0.02
-#define MOVE_SPEED 0.02
-#define MIN_PHI 0.0001
 
 float vertices[] = {
      0.0f,  0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 15.0f*TEX_SIZE, 0.0f,
@@ -42,8 +36,8 @@ mat4 view_mat, proj_mat;
 float x, y, z, theta, phi = PI/2;
 
 void set_tex_coords(int start_vertex, int index) {
-    int row = index / texture_width;
-    int col = index % texture_width;
+    int row = index / TEX_WIDTH;
+    int col = index % TEX_WIDTH;
 
     int v;
     for (v = start_vertex; v < start_vertex + 4; v++) {
@@ -54,6 +48,11 @@ void set_tex_coords(int start_vertex, int index) {
 
 void error_callback(int error, const char* description) {
     fprintf(stderr, "Error #%d: %s\n", error, description);
+}
+
+
+void init_camera() {
+    glm_perspective(1.2, ((float) width) / ((float) height), 0.1, 100.0, proj_mat);
 }
 
 void resize_callback(GLFWwindow* window, int iwidth, int iheight) {
@@ -104,10 +103,6 @@ void load_shaders() {
     tex_attrib = glGetAttribLocation(shader_program, "texcoord");
     glEnableVertexAttribArray(tex_attrib);
     glVertexAttribPointer(tex_attrib, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) (6 * sizeof(float)));
-}
-
-void init_camera() {
-    glm_perspective(1.2, ((float) width) / ((float) height), 0.1, 100.0, proj_mat);
 }
 
 void render(GLFWwindow *window) {
@@ -221,7 +216,7 @@ int main(int argc, char** argv) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture_width, texture_height, 0, GL_RGB, GL_FLOAT, texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, TEX_WIDTH, TEX_HEIGHT, 0, GL_RGB, GL_FLOAT, texture);
 
     load_shaders();
     init_camera();
