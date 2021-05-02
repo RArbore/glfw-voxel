@@ -12,7 +12,7 @@
 #define STARTING_VERTICES_NUM 16
 
 const int block_mesh_faces[3][6] = {
-    {0, 1, 1, 1, 1, 2},
+    {1, 1, 1, 1, 0, 2},
     {3, 3, 3, 3, 3, 3},
     {4, 4, 4, 4, 4, 4},
 };
@@ -147,9 +147,9 @@ void set_vert_base_coords(int start_vertex, int index, float *vertices, int x, i
 
     int v;
     for (v = start_vertex; v < start_vertex + 32; v += 8) {
-        vertices[v] = (float) x + 1;
-        vertices[v + 1] = (float) y + 1;
-        vertices[z + 2] = (float) z + 1;
+        vertices[v] = (float) x;
+        vertices[v + 1] = (float) y;
+        vertices[z + 2] = (float) z;
 
         vertices[v + 3] = 1.0f;
         vertices[v + 4] = 1.0f;
@@ -159,6 +159,23 @@ void set_vert_base_coords(int start_vertex, int index, float *vertices, int x, i
         vertices[v + 7] = (v == 1 || v == 2) ? (row + 1) * TEX_SIZE : row * TEX_SIZE;
     }
 }
+
+const int neighbor_offsets[][3] = {
+    {1, 0, 0},
+    {-1, 0, 0},
+    {0, 1, 0},
+    {0, -1, 0},
+    {0, 0, 1},
+    {0, 0, -1},
+};
+
+const int face_relative_offsets[][12] = {
+
+};
+
+const float face_shadows[] = {
+    0.7, 0.7, 0.7, 0.7, 1.0, 0.4
+};
 
 float* world_full_mesh_assemble(int *size) {
     int hash_index, current_size = 0;
@@ -178,28 +195,25 @@ float* world_full_mesh_assemble(int *size) {
                 for (r_z = 0; r_z < CHUNK_SIZE; r_z++) {
                     if (chunk->blocks[r_x][r_y][r_z].id == 0) continue;
                     block_t *to_render = &chunk->blocks[r_x][r_y][r_z];
-                    block_t *x_p = world_get_block_c(r_x + 1, r_y, r_z, chunk);
-                    block_t *x_n = world_get_block_c(r_x - 1, r_y, r_z, chunk);
-                    block_t *y_p = world_get_block_c(r_x, r_y + 1, r_z, chunk);
-                    block_t *y_n = world_get_block_c(r_x, r_y - 1, r_z, chunk);
-                    block_t *z_p = world_get_block_c(r_x, r_y, r_z + 1, chunk);
-                    block_t *z_n = world_get_block_c(r_x, r_y, r_z - 1, chunk);
-                    if (x_p == NULL || x_p->id == 0) {
-                        if (current_size + 32 >= vertices_max_size) {
-                            vertices_max_size *= 2;
-                            vertices = (float *) realloc(vertices, vertices_max_size * sizeof(float));
-                        }
-                        set_vert_base_coords(current_size, block_mesh_faces[to_render->id - 1][1], vertices, s_x + r_x, s_y + r_y, s_z + r_z);
-
-                        vertices[current_size + 9] -= 1.0;
-                        vertices[current_size + 17] -= 1.0;
-                        vertices[current_size + 18] -= 1.0;
-                        vertices[current_size + 26] -= 1.0;
-
-                        for (int old_size = current_size; current_size < old_size + 32; current_size += 8) {
-                            vertices[current_size + 3] = 0.8;
-                            vertices[current_size + 4] = 0.8;
-                            vertices[current_size + 5] = 0.8;
+                    int neighbor_num;
+                    for (neighbor_num = 0; neighbor_num < 6; neighbor_num++) {
+                        block_t *neighbor = world_get_block_c(r_x + neighbor_offsets[neighbor_num][0], r_y + neighbor_offsets[neighbor_num][1], r_z + neighbor_offsets[neighbor_num][2], chunk);
+                        if (neighbor == NULL || neighbor->id == 0) {
+                            if (current_size + 32 >= vertices_max_size) {
+                                vertices_max_size *= 2;
+                                vertices = (float *) realloc(vertices, vertices_max_size * sizeof(float));
+                            }
+                            set_vert_base_coords(current_size, block_mesh_faces[to_render->id - 1][1], vertices, s_x + r_x, s_y + r_y, s_z + r_z);
+                            int coord, vertices_i = 0;
+                            for (coord = 0; coord < 12; coord++) {
+                                vertices[current_size + vertices_i] += face_relative_offsets[neighbor_num][coord];
+                            }
+                            int old_size = current_size;
+                            for (; current_size < old_size + 32; current_size += 8) {
+                                vertices[current_size + 3] = face_shadows[neighbor_num];
+                                vertices[current_size + 4] = face_shadows[neighbor_num];
+                                vertices[current_size + 5] = face_shadows[neighbor_num];
+                            }
                         }
                     }
                 }
