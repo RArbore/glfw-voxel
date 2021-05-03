@@ -10,7 +10,7 @@
 #define MIN_PHI 0.0001
 
 #define CHUNK_SIZE 16
-#define HASH_TABLE_SIZE 256
+#define HASH_TABLE_SIZE 65536
 #define STARTING_VERTICES_NUM 16
 
 #endif // __CONSTANTS_H_

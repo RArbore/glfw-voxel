@@ -3,8 +3,6 @@
 
 #include "../include/constants.h"
 
-extern const int block_mesh_faces[3][6];
-
 typedef struct block_s {
     int id;
 } block_t;
@@ -30,7 +28,7 @@ chunk_t* world_chunk_remove(chunk_pos_t);
 
 chunk_t* world_chunk_remove_c(chunk_t *);
 
-void initialize_world_hash();
+void initialize_world();
 
 block_t* world_get_block(int, int, int);
 

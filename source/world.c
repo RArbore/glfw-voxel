@@ -7,9 +7,14 @@
 #include "../include/texture.h"
 #include "../include/constants.h"
 #include "../include/world.h"
+#include "../include/open-simplex-noise.h"
+
+#define FNL_IMPL
 
 chunk_t* hash_array[HASH_TABLE_SIZE];
 chunk_t* deleted;
+
+struct osn_context *ctx;
 
 int hash_code(chunk_pos_t chunk_pos) {
     int hash = (chunk_pos.s_x + 293 * chunk_pos.s_y + 617 * chunk_pos.s_z) % HASH_TABLE_SIZE;
@@ -70,10 +75,11 @@ chunk_t* world_chunk_remove_c(chunk_t *chunk) {
     return world_chunk_remove(chunk->chunk_pos);
 }
 
-void initialize_world_hash() {
+void initialize_world() {
     free(deleted);
     deleted = (chunk_t*) malloc(sizeof(chunk_t));
     deleted->chunk_pos = (chunk_pos_t){INT_MIN, INT_MIN, INT_MIN};
+	open_simplex_noise(77374, &ctx); 
 }
 
 block_t* world_get_block(int x, int y, int z) {
@@ -136,15 +142,12 @@ void set_vert_base_coords(int start_vertex, int index, float *vertices, int x, i
 
         vertices[v + 6] = (v - start_vertex == 0 || v - start_vertex == 8) ? (ATLAS_TEX_W - 1 - col) * TEX_SIZE : (ATLAS_TEX_W - col) * TEX_SIZE;
         vertices[v + 7] = (v - start_vertex == 8 || v - start_vertex == 16) ? (row + 1) * TEX_SIZE : row * TEX_SIZE;
-        //for (int i = 0; i < 8; i++) {
-        //    printf("%f ", vertices[v + i]);
-        //}
-        //printf("\n");
     }
 }
 
-const int block_mesh_faces[3][6] = {
+const int block_mesh_faces[][6] = {
     {1, 1, 0, 2, 1, 1},
+    {2, 2, 2, 2, 2, 2},
     {3, 3, 3, 3, 3, 3},
     {4, 4, 4, 4, 4, 4},
 };
@@ -222,14 +225,17 @@ float* world_full_mesh_assemble(int *size) {
 chunk_t* generate_chunk(chunk_pos_t chunk_pos) {
     chunk_t *chunk = (chunk_t *) malloc(sizeof(chunk_t));
     chunk->chunk_pos = chunk_pos;
-    int x, y, z;
-    for (x = 0; x < CHUNK_SIZE; x++) {
-        for (y = 0; y < CHUNK_SIZE; y++) {
-            for (z = 0; z < CHUNK_SIZE; z++) {
-                chunk->blocks[x][y][z] = (block_t) {1};
+    int r_x, r_y, r_z;
+    for (r_x = 0; r_x < CHUNK_SIZE; r_x++) {
+        for (r_z = 0; r_z < CHUNK_SIZE; r_z++) {
+            double height = open_simplex_noise2(ctx, (float) (r_x + chunk_pos.s_x) / 16.0, (float) (r_z + chunk_pos.s_z) / 16.0)*8; 
+            for (r_y = 0; r_y < CHUNK_SIZE; r_y++) {
+                int to_create = 0;
+                if (r_y < height - 1) to_create = 2;
+                else if (r_y < height) to_create = 1;
+                chunk->blocks[r_x][r_y][r_z] = (block_t) {to_create};
             }
         }
     }
-    chunk->blocks[0][0][0] = (block_t) {1};
     return chunk;
 }

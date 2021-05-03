@@ -1,5 +1,6 @@
 #include <sys/time.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 
@@ -85,12 +86,8 @@ void load_shaders() {
 }
 
 void render(GLFWwindow *window) {
-    mat4 world_mat = {
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1,
-    };
+    mat4 world_mat;
+    glm_mat4_identity(world_mat);
 
     //glm_rotate(world_mat, ((float) counter) / 100.0f, (vec3){0.0, 1.0, 0.0});
     glm_translate(world_mat, (vec3){3.0, 0.0, 0.0});
@@ -157,10 +154,13 @@ void tick(GLFWwindow *window) {
 
     gettimeofday(&stop, NULL);
     secs = (double)(stop.tv_usec - start.tv_usec) / 1000000 + (double)(stop.tv_sec - start.tv_sec);
-    //printf("FPS: %f   X: %f   Y: %f   Z: %f   THETA: %f   PHI: %f\n",1.0/secs, x, y, z, theta, phi);
+    printf("FPS: %f   X: %f   Y: %f   Z: %f   THETA: %f   PHI: %f\n",1.0/secs, x, y, z, theta, phi);
 }
 
 int main(int argc, char** argv) {
+    time_t t;
+    srand((unsigned) time(&t));
+
     if (!glfwInit()) {
         return 1;
     }
@@ -194,11 +194,19 @@ int main(int argc, char** argv) {
 
     load_shaders();
     init_camera();
-    initialize_world_hash();
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    initialize_world();
 
-    chunk_pos_t chunk_pos = (chunk_pos_t) {0, 0, 0};
-    chunk_t *chunk = generate_chunk(chunk_pos);
-    world_chunk_insert(chunk);
+    for (int x = 0; x < 8; x++) {
+        for (int y = 0; y < 1; y++) {
+            for (int z = 0; z < 8; z++) {
+                chunk_pos_t chunk_pos = (chunk_pos_t) {x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE};
+                chunk_t *chunk = generate_chunk(chunk_pos);
+                world_chunk_insert(chunk);
+            }
+        }
+    }
+
     vertices = world_full_mesh_assemble(&vertices_size);
 
     while (!glfwWindowShouldClose(window) && !glfwGetKey(window, GLFW_KEY_ESCAPE)) {
