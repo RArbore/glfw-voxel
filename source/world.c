@@ -96,7 +96,7 @@ block_t* world_get_block(int x, int y, int z) {
 }
 
 block_t* world_get_block_c(int r_x, int r_y, int r_z, chunk_t *chunk) {
-    if (r_x < 0 || r_x >= CHUNK_SIZE || r_y < 0 || r_y >= CHUNK_SIZE || r_z < 0 || r_z >= CHUNK_SIZE) return &chunk->blocks[r_x][r_y][r_z];
+    if (!(r_x < 0 || r_x >= CHUNK_SIZE || r_y < 0 || r_y >= CHUNK_SIZE || r_z < 0 || r_z >= CHUNK_SIZE)) return &chunk->blocks[r_x][r_y][r_z];
     chunk_pos_t chunk_pos = chunk->chunk_pos;
     while (r_x < 0) {
         r_x += CHUNK_SIZE;
@@ -188,6 +188,7 @@ float* world_full_mesh_assemble(int *size) {
                     int neighbor_num;
                     for (neighbor_num = 0; neighbor_num < 6; neighbor_num++) {
                         block_t *neighbor = world_get_block_c(r_x + neighbor_offsets[neighbor_num][0], r_y + neighbor_offsets[neighbor_num][1], r_z + neighbor_offsets[neighbor_num][2], chunk);
+                        printf("%d %d %d %d %d\n", r_x, r_y, r_z, neighbor_num, (neighbor == NULL) ? -1 : neighbor->id);
                         if (neighbor == NULL || neighbor->id == 0) {
                             if (current_size + 32 >= vertices_max_size) {
                                 vertices_max_size *= 2;

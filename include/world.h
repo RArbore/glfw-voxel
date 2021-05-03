@@ -1,6 +1,8 @@
 #ifndef __WORLD_H_
 #define __WORLD_H_
 
+#include "../include/constants.h"
+
 extern const int block_mesh_faces[3][6];
 
 typedef struct block_s {

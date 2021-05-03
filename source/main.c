@@ -196,7 +196,7 @@ int main(int argc, char** argv) {
     init_camera();
     initialize_world_hash();
 
-    chunk_pos_t chunk_pos;
+    chunk_pos_t chunk_pos = (chunk_pos_t) {0, 0, 0};
     chunk_t *chunk = generate_chunk(chunk_pos);
     world_chunk_insert(chunk);
     vertices = world_full_mesh_assemble(&vertices_size);
