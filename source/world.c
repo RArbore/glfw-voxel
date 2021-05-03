@@ -12,7 +12,7 @@
 #define STARTING_VERTICES_NUM 16
 
 const int block_mesh_faces[3][6] = {
-    {1, 1, 1, 1, 0, 2},
+    {1, 1, 0, 2, 1, 1},
     {3, 3, 3, 3, 3, 3},
     {4, 4, 4, 4, 4, 4},
 };
@@ -170,11 +170,16 @@ const int neighbor_offsets[][3] = {
 };
 
 const int face_relative_offsets[][12] = {
-
+    {1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0},
+    {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0},
+    {1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0},
+    {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0},
+    {0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0},
+    {1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0},
 };
 
 const float face_shadows[] = {
-    0.7, 0.7, 0.7, 0.7, 1.0, 0.4
+    0.7, 0.7, 1.0, 0.4, 0.7, 0.7
 };
 
 float* world_full_mesh_assemble(int *size) {
@@ -207,6 +212,7 @@ float* world_full_mesh_assemble(int *size) {
                             int coord, vertices_i = 0;
                             for (coord = 0; coord < 12; coord++) {
                                 vertices[current_size + vertices_i] += face_relative_offsets[neighbor_num][coord];
+                                vertices_i += (vertices_i % 8 < 2) ? 1 : 6;
                             }
                             int old_size = current_size;
                             for (; current_size < old_size + 32; current_size += 8) {
