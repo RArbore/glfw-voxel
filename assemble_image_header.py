@@ -16,7 +16,7 @@ except FileNotFoundError:
     sys.exit(1)
 
 fh = open("include/"+title_fn+".h", "w")
-fc = open("src/"+title_fn+".c", "w")
+fc = open("source/"+title_fn+".c", "w")
 
 w, h = pil_img.size
 

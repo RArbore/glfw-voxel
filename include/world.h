@@ -1,17 +1,20 @@
 #ifndef __WORLD_H_
 #define __WORLD_H_
 
-#define CHUNK_SIZE 16
-#define HASH_TABLE_SIZE 256
-#define STARTING_VERTICES_NUM 16
-
 extern const int block_mesh_faces[3][6];
 
-typedef struct block_s block_t;
+typedef struct block_s {
+    int id;
+} block_t;
 
-typedef struct chunk_pos_s chunk_pos_t;
+typedef struct chunk_pos_s {
+    int s_x, s_y, s_z;
+} chunk_pos_t;
 
-typedef struct chunk_s chunk_t;
+typedef struct chunk_s {
+    chunk_pos_t chunk_pos;
+    block_t blocks[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
+} chunk_t;
 
 int hash_code(chunk_pos_t);
 
@@ -33,6 +36,8 @@ block_t* world_get_block_c(int, int, int, chunk_t *);
 
 void set_vert_base_coords(int, int, float *, int, int, int);
 
-float* world_mesh_assemble(int *);
+float* world_full_mesh_assemble(int *);
+
+chunk_t* generate_chunk(chunk_pos_t);
 
 #endif // __WORLD_H_

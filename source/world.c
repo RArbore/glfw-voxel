@@ -6,29 +6,13 @@
 
 #include "../include/texture.h"
 #include "../include/constants.h"
-
-#define CHUNK_SIZE 16
-#define HASH_TABLE_SIZE 256
-#define STARTING_VERTICES_NUM 16
+#include "../include/world.h"
 
 const int block_mesh_faces[3][6] = {
     {1, 1, 0, 2, 1, 1},
     {3, 3, 3, 3, 3, 3},
     {4, 4, 4, 4, 4, 4},
 };
-
-typedef struct block_s {
-    int id;
-} block_t;
-
-typedef struct chunk_pos_s {
-    int s_x, s_y, s_z;
-} chunk_pos_t;
-
-typedef struct chunk_s {
-    chunk_pos_t chunk_pos;
-    block_t blocks[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
-} chunk_t;
 
 chunk_t* hash_array[HASH_TABLE_SIZE];
 chunk_t* deleted;
@@ -93,6 +77,7 @@ chunk_t* world_chunk_remove_c(chunk_t *chunk) {
 }
 
 void initialize_world_hash() {
+    free(deleted);
     deleted = (chunk_t*) malloc(sizeof(chunk_t));
     deleted->chunk_pos = (chunk_pos_t){INT_MIN, INT_MIN, INT_MIN};
 }
@@ -155,7 +140,7 @@ void set_vert_base_coords(int start_vertex, int index, float *vertices, int x, i
         vertices[v + 4] = 1.0f;
         vertices[z + 5] = 1.0f;
 
-        vertices[v + 6] = (v == 0 || v == 1) ? (15 - col) * TEX_SIZE : (16 - col) * TEX_SIZE;
+        vertices[v + 6] = (v == 0 || v == 1) ? (ATLAS_TEX_W - 1 - col) * TEX_SIZE : (ATLAS_TEX_W - col) * TEX_SIZE;
         vertices[v + 7] = (v == 1 || v == 2) ? (row + 1) * TEX_SIZE : row * TEX_SIZE;
     }
 }
@@ -229,4 +214,19 @@ float* world_full_mesh_assemble(int *size) {
 
     *size = current_size;
     return vertices;
+}
+
+chunk_t* generate_chunk(chunk_pos_t chunk_pos) {
+    chunk_t *chunk = (chunk_t *) malloc(sizeof(chunk_t));
+    chunk->chunk_pos = chunk_pos;
+    int x, y, z;
+    for (x = 0; x < CHUNK_SIZE; x++) {
+        for (y = 0; y < CHUNK_SIZE; y++) {
+            for (z = 0; z < CHUNK_SIZE; z++) {
+                chunk->blocks[x][y][z] = (block_t) {1};
+            }
+        }
+    }
+    chunk->blocks[0][0][0] = (block_t) {1};
+    return chunk;
 }

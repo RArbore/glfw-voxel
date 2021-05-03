@@ -14,42 +14,22 @@
 #include "../include/constants.h"
 #include "../include/world.h"
 
-float vertices[] = {
-     0.0f,  0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 15.0f*TEX_SIZE, 0.0f,
-     0.0f, -0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 15.0f*TEX_SIZE, TEX_SIZE,
-     0.0f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 16.0f*TEX_SIZE, TEX_SIZE,
-     0.0f, 0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 16.0f*TEX_SIZE, 0.0f,
-};
-
-GLuint elements[] = {
-    0, 1, 2, 3,
-};
+float *vertices;
+int vertices_size;
 
 int width, height;
 long counter = 0;
 
-GLuint vao, vbo, ebo, tex_atlas, trans_attrib, vertex_shader, fragment_shader, shader_program;
+GLuint vao, vbo, tex_atlas, trans_attrib, vertex_shader, fragment_shader, shader_program;
 GLint pos_attrib, col_attrib, tex_attrib;
 
 mat4 view_mat, proj_mat;
 
 float x, y, z, theta, phi = PI/2;
 
-void set_tex_coords(int start_vertex, int index) {
-    int row = index / TEX_WIDTH;
-    int col = index % TEX_WIDTH;
-
-    int v;
-    for (v = start_vertex; v < start_vertex + 4; v++) {
-        vertices[8 * v + 6] = (v == 0 || v == 1) ? (15 - col) * TEX_SIZE : (16 - col) * TEX_SIZE;
-        vertices[8 * v + 7] = (v == 1 || v == 2) ? (row + 1) * TEX_SIZE : row * TEX_SIZE;
-    }
-}
-
 void error_callback(int error, const char* description) {
     fprintf(stderr, "Error #%d: %s\n", error, description);
 }
-
 
 void init_camera() {
     glm_perspective(1.2, ((float) width) / ((float) height), 0.1, 100.0, proj_mat);
@@ -70,7 +50,6 @@ GLFWwindow* initialize_window() {
         glfwShowWindow(window);
         glfwMakeContextCurrent(window);
         gladLoadGL();
-        glfwSwapInterval(1); //vsync: 1, no vsync: 0
         glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     }
     return window;
@@ -106,10 +85,6 @@ void load_shaders() {
 }
 
 void render(GLFWwindow *window) {
-    if (counter % 10 == 0) {
-        set_tex_coords(0, (counter / 10) % 5);
-    }
-
     mat4 world_mat = {
         1, 0, 0, 0,
         0, 1, 0, 0,
@@ -129,11 +104,10 @@ void render(GLFWwindow *window) {
     trans_attrib = glGetUniformLocation(shader_program, "proj_mat");
     glUniformMatrix4fv(trans_attrib, 1, GL_FALSE, (float * ) proj_mat);
 
-    glClear(GL_COLOR_BUFFER_BIT);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STREAM_DRAW);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glBufferData(GL_ARRAY_BUFFER, vertices_size * sizeof(float), vertices, GL_STREAM_DRAW);
 
-    glDrawElements(GL_QUADS, 4, GL_UNSIGNED_INT, 0);
+    glDrawArrays(GL_QUADS, 0, vertices_size / 8);
 
     glfwSwapBuffers(window);
 }
@@ -200,14 +174,14 @@ int main(int argc, char** argv) {
 
     glfwSetFramebufferSizeCallback(window, resize_callback);
 
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-    glGenBuffers(1, &ebo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
     glGenTextures(1, &tex_atlas);
     glBindTexture(GL_TEXTURE_2D, tex_atlas);
@@ -221,6 +195,12 @@ int main(int argc, char** argv) {
     load_shaders();
     init_camera();
     initialize_world_hash();
+
+    chunk_pos_t chunk_pos;
+    chunk_t *chunk = generate_chunk(chunk_pos);
+    world_chunk_insert(chunk);
+    vertices = world_full_mesh_assemble(&vertices_size);
+    printf("%d\n", vertices_size);
 
     while (!glfwWindowShouldClose(window) && !glfwGetKey(window, GLFW_KEY_ESCAPE)) {
         tick(window);

@@ -19,7 +19,7 @@ const char* vertex_source = R"glsl(
     void main() {
         color1 = color;
         texcoord1 = texcoord;
-        gl_Position = proj_mat * view_mat * world_mat * vec4(position, 1.0);
+        gl_Position = proj_mat * view_mat * world_mat * vec4(position * 0.2, 1.0);
     }
 
 )glsl";
