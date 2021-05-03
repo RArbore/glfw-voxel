@@ -8,12 +8,6 @@
 #include "../include/constants.h"
 #include "../include/world.h"
 
-const int block_mesh_faces[3][6] = {
-    {1, 1, 0, 2, 1, 1},
-    {3, 3, 3, 3, 3, 3},
-    {4, 4, 4, 4, 4, 4},
-};
-
 chunk_t* hash_array[HASH_TABLE_SIZE];
 chunk_t* deleted;
 
@@ -134,16 +128,26 @@ void set_vert_base_coords(int start_vertex, int index, float *vertices, int x, i
     for (v = start_vertex; v < start_vertex + 32; v += 8) {
         vertices[v] = (float) x;
         vertices[v + 1] = (float) y;
-        vertices[z + 2] = (float) z;
+        vertices[v + 2] = (float) z;
 
         vertices[v + 3] = 1.0f;
         vertices[v + 4] = 1.0f;
-        vertices[z + 5] = 1.0f;
+        vertices[v + 5] = 1.0f;
 
-        vertices[v + 6] = (v == 0 || v == 1) ? (ATLAS_TEX_W - 1 - col) * TEX_SIZE : (ATLAS_TEX_W - col) * TEX_SIZE;
-        vertices[v + 7] = (v == 1 || v == 2) ? (row + 1) * TEX_SIZE : row * TEX_SIZE;
+        vertices[v + 6] = (v - start_vertex == 0 || v - start_vertex == 8) ? (ATLAS_TEX_W - 1 - col) * TEX_SIZE : (ATLAS_TEX_W - col) * TEX_SIZE;
+        vertices[v + 7] = (v - start_vertex == 8 || v - start_vertex == 16) ? (row + 1) * TEX_SIZE : row * TEX_SIZE;
+        //for (int i = 0; i < 8; i++) {
+        //    printf("%f ", vertices[v + i]);
+        //}
+        //printf("\n");
     }
 }
+
+const int block_mesh_faces[3][6] = {
+    {1, 1, 0, 2, 1, 1},
+    {3, 3, 3, 3, 3, 3},
+    {4, 4, 4, 4, 4, 4},
+};
 
 const int neighbor_offsets[][3] = {
     {1, 0, 0},
@@ -188,13 +192,12 @@ float* world_full_mesh_assemble(int *size) {
                     int neighbor_num;
                     for (neighbor_num = 0; neighbor_num < 6; neighbor_num++) {
                         block_t *neighbor = world_get_block_c(r_x + neighbor_offsets[neighbor_num][0], r_y + neighbor_offsets[neighbor_num][1], r_z + neighbor_offsets[neighbor_num][2], chunk);
-                        printf("%d %d %d %d %d\n", r_x, r_y, r_z, neighbor_num, (neighbor == NULL) ? -1 : neighbor->id);
                         if (neighbor == NULL || neighbor->id == 0) {
                             if (current_size + 32 >= vertices_max_size) {
                                 vertices_max_size *= 2;
                                 vertices = (float *) realloc(vertices, vertices_max_size * sizeof(float));
                             }
-                            set_vert_base_coords(current_size, block_mesh_faces[to_render->id - 1][1], vertices, s_x + r_x, s_y + r_y, s_z + r_z);
+                            set_vert_base_coords(current_size, block_mesh_faces[to_render->id - 1][neighbor_num], vertices, s_x + r_x, s_y + r_y, s_z + r_z);
                             int coord, vertices_i = 0;
                             for (coord = 0; coord < 12; coord++) {
                                 vertices[current_size + vertices_i] += face_relative_offsets[neighbor_num][coord];
@@ -212,7 +215,6 @@ float* world_full_mesh_assemble(int *size) {
             }
         }
     }
-
     *size = current_size;
     return vertices;
 }

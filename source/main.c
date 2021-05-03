@@ -200,7 +200,6 @@ int main(int argc, char** argv) {
     chunk_t *chunk = generate_chunk(chunk_pos);
     world_chunk_insert(chunk);
     vertices = world_full_mesh_assemble(&vertices_size);
-    printf("%d\n", vertices_size);
 
     while (!glfwWindowShouldClose(window) && !glfwGetKey(window, GLFW_KEY_ESCAPE)) {
         tick(window);
