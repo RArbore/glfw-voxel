@@ -105,7 +105,7 @@ void render(GLFWwindow *window) {
     glm_look((vec3){x, y, z}, (vec3){cos(theta)*sin(phi), cos(phi), sin(theta)*sin(phi)}, (vec3){0.0, 1.0, 0.0}, view_mat);
 
     float dir_light[] = {0.0, -1.0, 0.0, 0.5, 0.5, 0.5, 0.3, 0.3, 0.3, 0.1, 0.1, 0.1};
-    float point_light[] = {0.0, 32.0, 0.0, 0.0, 0.0, 0.0, 0.6, 0.6, 0.6, 0.2, 0.2, 0.2, 1.0, 0.0009, 0.000032};
+    float point_light[] = {x, y, z, 0.0, 0.0, 0.0, 0.6, 0.6, 0.6, 0.2, 0.2, 0.2, 1.0, 0.0009, 0.000032};
 
     float camera_pos[] = {x, y, z};
 

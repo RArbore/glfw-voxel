@@ -92,7 +92,9 @@ const char* fragment_source = R"glsl(
         for (i = 0; i < NUM_LIGHTS; i++) {
             result += calc_point_light_contrib(point_light[i], norm, position1, camera_dir);
         }
-        color = vec4(result * vec3(texture(tex_atlas, texcoord1)), 1.0);
+        float distance = length(camera_pos - position1);
+        float fog = 1.0 - 1.0/(distance*distance*0.0001 + 1.0);
+        color = vec4(result * vec3(texture(tex_atlas, texcoord1)) * (1.0 - fog) + vec3(0.4, 0.4, 0.4) * fog, 1.0);
     }
 
 )glsl";
