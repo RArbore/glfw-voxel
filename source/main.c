@@ -21,7 +21,7 @@ int world_vertices_size;
 int width, height;
 long counter = 0;
 
-GLuint vao, vbo, tex_atlas, uniform_attrib, vertex_shader, fragment_shader, shader_program;
+GLuint vao, vbo, tex_atlas, vertex_shader, fragment_shader, shader_program;
 GLint pos_attrib, col_attrib, tex_attrib;
 
 mat4 view_mat, proj_mat;
@@ -65,6 +65,19 @@ void load_shaders() {
     glShaderSource(fragment_shader, 1, &fragment_source, NULL);
     glCompileShader(fragment_shader);
 
+    GLint isCompiled = 0;
+    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &isCompiled);
+    if(isCompiled == GL_FALSE)
+    {
+        GLint maxLength = 0;
+        glGetShaderiv(fragment_shader, GL_INFO_LOG_LENGTH, &maxLength);
+
+        char *errorLog = malloc(maxLength * sizeof(char));
+        glGetShaderInfoLog(fragment_shader, maxLength, &maxLength, &errorLog[0]);
+        printf("%s\n", errorLog);
+
+    }
+
     shader_program = glCreateProgram();
     glAttachShader(shader_program, vertex_shader);
     glAttachShader(shader_program, fragment_shader);
@@ -91,23 +104,24 @@ void render(GLFWwindow *window) {
 
     glm_look((vec3){x, y, z}, (vec3){cos(theta)*sin(phi), cos(phi), sin(theta)*sin(phi)}, (vec3){0.0, 1.0, 0.0}, view_mat);
 
-    float light_pos[] = {x, y, z};
-    float light_color[] = {1.0, 1.0, 1.0};
+    float dir_light[] = {0.0, -1.0, 0.0, 0.5, 0.5, 0.5, 0.3, 0.3, 0.3, 0.1, 0.1, 0.1};
+    float point_light[] = {0.0, 32.0, 0.0, 0.0, 0.0, 0.0, 0.6, 0.6, 0.6, 0.2, 0.2, 0.2, 1.0, 0.0009, 0.000032};
 
     float camera_pos[] = {x, y, z};
 
-    uniform_attrib = glGetUniformLocation(shader_program, "world_mat");
-    glUniformMatrix4fv(uniform_attrib, 1, GL_FALSE, (float *) world_mat);
-    uniform_attrib = glGetUniformLocation(shader_program, "view_mat");
-    glUniformMatrix4fv(uniform_attrib, 1, GL_FALSE, (float *) view_mat);
-    uniform_attrib = glGetUniformLocation(shader_program, "proj_mat");
-    glUniformMatrix4fv(uniform_attrib, 1, GL_FALSE, (float *) proj_mat);
-    uniform_attrib = glGetUniformLocation(shader_program, "light_pos");
-    glUniform3fv(uniform_attrib, 1, (float *) light_pos);
-    uniform_attrib = glGetUniformLocation(shader_program, "light_color");
-    glUniform3fv(uniform_attrib, 1, (float *) light_color);
-    uniform_attrib = glGetUniformLocation(shader_program, "camera_pos");
-    glUniform3fv(uniform_attrib, 1, (float *) camera_pos);
+    glUniformMatrix4fv(glGetUniformLocation(shader_program, "world_mat"), 1, GL_FALSE, (float *) world_mat);
+    glUniformMatrix4fv(glGetUniformLocation(shader_program, "view_mat"), 1, GL_FALSE, (float *) view_mat);
+    glUniformMatrix4fv(glGetUniformLocation(shader_program, "proj_mat"), 1, GL_FALSE, (float *) proj_mat);
+    glUniform3fv(glGetUniformLocation(shader_program, "dir_light.direction"), 1, (float *) dir_light);
+    glUniform3fv(glGetUniformLocation(shader_program, "dir_light.ambient_color"), 1, (float *) dir_light + 3);
+    glUniform3fv(glGetUniformLocation(shader_program, "dir_light.diffuse_color"), 1, (float *) dir_light + 6);
+    glUniform3fv(glGetUniformLocation(shader_program, "dir_light.specular_color"), 1, (float *) dir_light + 9);
+    glUniform3fv(glGetUniformLocation(shader_program, "point_light[0].position"), 1, (float *) point_light);
+    glUniform3fv(glGetUniformLocation(shader_program, "point_light[0].ambient_color"), 1, (float *) point_light + 3);
+    glUniform3fv(glGetUniformLocation(shader_program, "point_light[0].diffuse_color"), 1, (float *) point_light + 6);
+    glUniform3fv(glGetUniformLocation(shader_program, "point_light[0].specular_color"), 1, (float *) point_light + 9);
+    glUniform3fv(glGetUniformLocation(shader_program, "point_light[0].attenuation"), 1, (float *) point_light + 12);
+    glUniform3fv(glGetUniformLocation(shader_program, "camera_pos"), 1, (float *) camera_pos);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glBufferData(GL_ARRAY_BUFFER, world_vertices_size * sizeof(float), world_vertices, GL_STREAM_DRAW);
