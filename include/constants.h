@@ -7,7 +7,7 @@
 
 #define ANGLE_SPEED 0.02
 #define MOVE_SPEED 0.5
-#define MIN_PHI 0.0001
+#define MIN_PHI 0.001
 
 #define CHUNK_SIZE 16
 #define HASH_TABLE_SIZE 65536

@@ -201,6 +201,8 @@ int main(int argc, char** argv) {
 
     glEnable(GL_CULL_FACE);
 
+    glEnable(GL_FRAMEBUFFER_SRGB);
+
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
@@ -213,7 +215,6 @@ int main(int argc, char** argv) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, TEX_WIDTH, TEX_HEIGHT, 0, GL_RGB, GL_FLOAT, texture);
 
     load_shaders();

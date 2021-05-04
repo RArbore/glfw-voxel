@@ -63,8 +63,8 @@ const char* fragment_source = R"glsl(
     vec3 calc_dir_light_contrib(dir_light_s light, vec3 normal, vec3 camera_dir) {
         vec3 light_dir = normalize(-light.direction);
         float diff = max(dot(normal, light_dir), 0.0);
-        vec3 reflect_dir = reflect(-light_dir, normal);
-        float spec = pow(max(dot(camera_dir, reflect_dir), 0.0), 64);
+        vec3 halfway_dir = normalize(light_dir + camera_dir);
+        float spec = pow(max(dot(normal, halfway_dir), 0.0), 64);
         vec3 ambient = light.ambient_color;
         vec3 diffuse = light.diffuse_color * diff;
         vec3 specular = light.specular_color * spec;
@@ -74,8 +74,8 @@ const char* fragment_source = R"glsl(
     vec3 calc_point_light_contrib(point_light_s light, vec3 normal, vec3 pos, vec3 camera_dir) {
         vec3 light_dir = normalize(light.position - pos);
         float diff = max(dot(normal, light_dir), 0.0);
-        vec3 reflect_dir = reflect(-light_dir, normal);
-        float spec = pow(max(dot(camera_dir, reflect_dir), 0.0), 64);
+        vec3 halfway_dir = normalize(light_dir + camera_dir);
+        float spec = pow(max(dot(normal, halfway_dir), 0.0), 64);
         float distance = length(light.position - pos);
         float attenuation = 1.0 / (light.attenuation.x + light.attenuation.y * distance + light.attenuation.z * distance * distance);
         vec3 ambient = light.ambient_color;
@@ -93,7 +93,7 @@ const char* fragment_source = R"glsl(
             result += calc_point_light_contrib(point_light[i], norm, position1, camera_dir);
         }
         float distance = length(camera_pos - position1);
-        float fog = 1.0 - 1.0/(distance*distance*0.0001 + 1.0);
+        float fog = 1.0 - 1.0/(distance*distance*0.00001 + 1.0);
         color = vec4(result * vec3(texture(tex_atlas, texcoord1)) * (1.0 - fog) + vec3(0.4, 0.4, 0.4) * fog, 1.0);
     }
 
