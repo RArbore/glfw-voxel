@@ -199,6 +199,8 @@ int main(int argc, char** argv) {
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
 
+    glEnable(GL_CULL_FACE);
+
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
@@ -219,9 +221,9 @@ int main(int argc, char** argv) {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     initialize_world();
 
-    for (int x = 0; x < 16; x++) {
+    for (int x = 0; x < 24; x++) {
         for (int y = 0; y < 1; y++) {
-            for (int z = 0; z < 16; z++) {
+            for (int z = 0; z < 24; z++) {
                 chunk_pos_t chunk_pos = (chunk_pos_t) {x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE};
                 chunk_t *chunk = generate_chunk(chunk_pos);
                 world_chunk_insert(chunk);
