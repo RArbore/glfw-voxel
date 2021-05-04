@@ -91,8 +91,10 @@ void render(GLFWwindow *window) {
 
     glm_look((vec3){x, y, z}, (vec3){cos(theta)*sin(phi), cos(phi), sin(theta)*sin(phi)}, (vec3){0.0, 1.0, 0.0}, view_mat);
 
-    float light_pos[] = {0.0, 128.0, 0.0};
+    float light_pos[] = {x, y, z};
     float light_color[] = {1.0, 1.0, 1.0};
+
+    float camera_pos[] = {x, y, z};
 
     uniform_attrib = glGetUniformLocation(shader_program, "world_mat");
     glUniformMatrix4fv(uniform_attrib, 1, GL_FALSE, (float *) world_mat);
@@ -104,6 +106,8 @@ void render(GLFWwindow *window) {
     glUniform3fv(uniform_attrib, 1, (float *) light_pos);
     uniform_attrib = glGetUniformLocation(shader_program, "light_color");
     glUniform3fv(uniform_attrib, 1, (float *) light_color);
+    uniform_attrib = glGetUniformLocation(shader_program, "camera_pos");
+    glUniform3fv(uniform_attrib, 1, (float *) camera_pos);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glBufferData(GL_ARRAY_BUFFER, world_vertices_size * sizeof(float), world_vertices, GL_STREAM_DRAW);

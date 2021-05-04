@@ -38,15 +38,23 @@ const char* fragment_source = R"glsl(
 
     uniform vec3 light_pos;
     uniform vec3 light_color;
+
+    uniform vec3 camera_pos;
+
     uniform sampler2D tex_atlas;
 
     void main() {
-        float ambient_strength = 0.3;
+        float ambient_strength = 0.4;
+        float specular_strength = 0.3;
         vec3 norm = normalize(normal1);
         vec3 light_dir = normalize(light_pos - position1);
         float diff = max(dot(norm, light_dir), 0.0);
         vec3 diffuse = diff * light_color;
-        color = texture(tex_atlas, texcoord1) * vec4(light_color * ambient_strength + diffuse * (1.0 - ambient_strength), 1.0);
+        vec3 camera_dir = normalize(camera_pos - position1);
+vec3 reflect_dir = reflect(-light_dir, normal1);
+float spec = pow(max(dot(camera_dir, reflect_dir), 0.0), 64);
+vec3 specular = specular_strength * spec * light_color;
+        color = texture(tex_atlas, texcoord1) * vec4(light_color * ambient_strength + specular * specular_strength + diffuse * (1.0 - ambient_strength - specular_strength), 1.0);
     }
 
 )glsl";
