@@ -15,13 +15,13 @@
 #include "../include/constants.h"
 #include "../include/world.h"
 
-float *vertices;
-int vertices_size;
+float *world_vertices;
+int world_vertices_size;
 
 int width, height;
 long counter = 0;
 
-GLuint vao, vbo, tex_atlas, trans_attrib, vertex_shader, fragment_shader, shader_program;
+GLuint vao, vbo, tex_atlas, uniform_attrib, vertex_shader, fragment_shader, shader_program;
 GLint pos_attrib, col_attrib, tex_attrib;
 
 mat4 view_mat, proj_mat;
@@ -33,7 +33,7 @@ void error_callback(int error, const char* description) {
 }
 
 void init_camera() {
-    glm_perspective(1.2, ((float) width) / ((float) height), 0.1, 100.0, proj_mat);
+    glm_perspective(1.2, ((float) width) / ((float) height), 0.1, 1000.0, proj_mat);
 }
 
 void resize_callback(GLFWwindow* window, int iwidth, int iheight) {
@@ -76,7 +76,7 @@ void load_shaders() {
     glEnableVertexAttribArray(pos_attrib);
     glVertexAttribPointer(pos_attrib, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 0);
 
-    col_attrib = glGetAttribLocation(shader_program, "color");
+    col_attrib = glGetAttribLocation(shader_program, "normal");
     glEnableVertexAttribArray(col_attrib);
     glVertexAttribPointer(col_attrib, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) (3 * sizeof(float)));
 
@@ -89,22 +89,26 @@ void render(GLFWwindow *window) {
     mat4 world_mat;
     glm_mat4_identity(world_mat);
 
-    //glm_rotate(world_mat, ((float) counter) / 100.0f, (vec3){0.0, 1.0, 0.0});
-    glm_translate(world_mat, (vec3){3.0, 0.0, 0.0});
-
     glm_look((vec3){x, y, z}, (vec3){cos(theta)*sin(phi), cos(phi), sin(theta)*sin(phi)}, (vec3){0.0, 1.0, 0.0}, view_mat);
 
-    trans_attrib = glGetUniformLocation(shader_program, "world_mat");
-    glUniformMatrix4fv(trans_attrib, 1, GL_FALSE, (float * ) world_mat);
-    trans_attrib = glGetUniformLocation(shader_program, "view_mat");
-    glUniformMatrix4fv(trans_attrib, 1, GL_FALSE, (float * ) view_mat);
-    trans_attrib = glGetUniformLocation(shader_program, "proj_mat");
-    glUniformMatrix4fv(trans_attrib, 1, GL_FALSE, (float * ) proj_mat);
+    float light_pos[] = {0.0, 128.0, 0.0};
+    float light_color[] = {1.0, 1.0, 1.0};
+
+    uniform_attrib = glGetUniformLocation(shader_program, "world_mat");
+    glUniformMatrix4fv(uniform_attrib, 1, GL_FALSE, (float *) world_mat);
+    uniform_attrib = glGetUniformLocation(shader_program, "view_mat");
+    glUniformMatrix4fv(uniform_attrib, 1, GL_FALSE, (float *) view_mat);
+    uniform_attrib = glGetUniformLocation(shader_program, "proj_mat");
+    glUniformMatrix4fv(uniform_attrib, 1, GL_FALSE, (float *) proj_mat);
+    uniform_attrib = glGetUniformLocation(shader_program, "light_pos");
+    glUniform3fv(uniform_attrib, 1, (float *) light_pos);
+    uniform_attrib = glGetUniformLocation(shader_program, "light_color");
+    glUniform3fv(uniform_attrib, 1, (float *) light_color);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glBufferData(GL_ARRAY_BUFFER, vertices_size * sizeof(float), vertices, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, world_vertices_size * sizeof(float), world_vertices, GL_STREAM_DRAW);
 
-    glDrawArrays(GL_QUADS, 0, vertices_size / 8);
+    glDrawArrays(GL_QUADS, 0, world_vertices_size / 8);
 
     glfwSwapBuffers(window);
 }
@@ -197,9 +201,9 @@ int main(int argc, char** argv) {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     initialize_world();
 
-    for (int x = 0; x < 8; x++) {
+    for (int x = 0; x < 16; x++) {
         for (int y = 0; y < 1; y++) {
-            for (int z = 0; z < 8; z++) {
+            for (int z = 0; z < 16; z++) {
                 chunk_pos_t chunk_pos = (chunk_pos_t) {x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE};
                 chunk_t *chunk = generate_chunk(chunk_pos);
                 world_chunk_insert(chunk);
@@ -207,7 +211,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    vertices = world_full_mesh_assemble(&vertices_size);
+    world_vertices = world_full_mesh_assemble(&world_vertices_size);
 
     while (!glfwWindowShouldClose(window) && !glfwGetKey(window, GLFW_KEY_ESCAPE)) {
         tick(window);

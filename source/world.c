@@ -136,9 +136,9 @@ void set_vert_base_coords(int start_vertex, int index, float *vertices, int x, i
         vertices[v + 1] = (float) y;
         vertices[v + 2] = (float) z;
 
-        vertices[v + 3] = 1.0f;
-        vertices[v + 4] = 1.0f;
-        vertices[v + 5] = 1.0f;
+        vertices[v + 3] = 0.0f;
+        vertices[v + 4] = 0.0f;
+        vertices[v + 5] = 0.0f;
 
         vertices[v + 6] = (v - start_vertex == 0 || v - start_vertex == 8) ? (ATLAS_TEX_W - 1 - col) * TEX_SIZE : (ATLAS_TEX_W - col) * TEX_SIZE;
         vertices[v + 7] = (v - start_vertex == 8 || v - start_vertex == 16) ? (row + 1) * TEX_SIZE : row * TEX_SIZE;
@@ -170,8 +170,13 @@ const int face_relative_offsets[][12] = {
     {1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0},
 };
 
-const float face_shadows[] = {
-    0.7, 0.7, 1.0, 0.4, 0.7, 0.7
+const float face_normals[][3] = {
+    {1, 0, 0},
+    {-1, 0, 0},
+    {0, 1, 0},
+    {0, -1, 0},
+    {0, 0, 1},
+    {0, 0, -1},
 };
 
 float* world_full_mesh_assemble(int *size) {
@@ -208,9 +213,9 @@ float* world_full_mesh_assemble(int *size) {
                             }
                             int old_size = current_size;
                             for (; current_size < old_size + 32; current_size += 8) {
-                                vertices[current_size + 3] = face_shadows[neighbor_num];
-                                vertices[current_size + 4] = face_shadows[neighbor_num];
-                                vertices[current_size + 5] = face_shadows[neighbor_num];
+                                vertices[current_size + 3] = face_normals[neighbor_num][0];
+                                vertices[current_size + 4] = face_normals[neighbor_num][1];
+                                vertices[current_size + 5] = face_normals[neighbor_num][2];
                             }
                         }
                     }
@@ -228,7 +233,7 @@ chunk_t* generate_chunk(chunk_pos_t chunk_pos) {
     int r_x, r_y, r_z;
     for (r_x = 0; r_x < CHUNK_SIZE; r_x++) {
         for (r_z = 0; r_z < CHUNK_SIZE; r_z++) {
-            double height = open_simplex_noise2(ctx, (float) (r_x + chunk_pos.s_x) / 16.0, (float) (r_z + chunk_pos.s_z) / 16.0)*8; 
+            double height = open_simplex_noise2(ctx, (float) (r_x + chunk_pos.s_x) / 16.0, (float) (r_z + chunk_pos.s_z) / 16.0)*8+8; 
             for (r_y = 0; r_y < CHUNK_SIZE; r_y++) {
                 int to_create = 0;
                 if (r_y < height - 1) to_create = 2;

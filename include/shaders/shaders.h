@@ -3,13 +3,14 @@
 
 const char* vertex_source = R"glsl(
 
-    #version 150 core
+    #version 330 core
 
     in vec3 position;
-    in vec3 color;
+    in vec3 normal;
     in vec2 texcoord;
 
-    out vec3 color1;
+    out vec3 position1;
+    out vec3 normal1;
     out vec2 texcoord1;
 
     uniform mat4 world_mat;
@@ -17,26 +18,35 @@ const char* vertex_source = R"glsl(
     uniform mat4 proj_mat;
 
     void main() {
-        color1 = color;
+        position1 = vec3(world_mat * vec4(position, 1.0));
+        normal1 = normal;
         texcoord1 = texcoord;
-        gl_Position = proj_mat * view_mat * world_mat * vec4(position * 0.2, 1.0);
+        gl_Position = proj_mat * view_mat * vec4(position1, 1.0);
     }
 
 )glsl";
 
 const char* fragment_source = R"glsl(
 
-    #version 150 core
+    #version 330 core
 
-    in vec3 color1;
+    in vec3 position1;
+    in vec3 normal1;
     in vec2 texcoord1;
 
-    out vec4 color2;
+    out vec4 color;
 
+    uniform vec3 light_pos;
+    uniform vec3 light_color;
     uniform sampler2D tex_atlas;
 
     void main() {
-        color2 = texture(tex_atlas, texcoord1) * vec4(color1, 1.0);
+        float ambient_strength = 0.3;
+        vec3 norm = normalize(normal1);
+        vec3 light_dir = normalize(light_pos - position1);
+        float diff = max(dot(norm, light_dir), 0.0);
+        vec3 diffuse = diff * light_color;
+        color = texture(tex_atlas, texcoord1) * vec4(light_color * ambient_strength + diffuse * (1.0 - ambient_strength), 1.0);
     }
 
 )glsl";

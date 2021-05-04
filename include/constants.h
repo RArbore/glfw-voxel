@@ -6,7 +6,7 @@
 #define PI 3.14159265358979323846
 
 #define ANGLE_SPEED 0.02
-#define MOVE_SPEED 0.1
+#define MOVE_SPEED 0.5
 #define MIN_PHI 0.0001
 
 #define CHUNK_SIZE 16
