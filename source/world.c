@@ -273,7 +273,7 @@ chunk_t* generate_chunk(chunk_pos_t chunk_pos) {
 
 void chunk_management(void *argsv) {
     management_args_t *args = argsv;
-    int r_x, r_y, r_z, n_x, n_y, n_z, p_x = INT_MIN, p_y = INT_MIN, p_z = INT_MIN;
+    int r_x, r_y, r_z, n_x, n_y, n_z, p_x = INT_MIN, p_y = INT_MIN, p_z = INT_MIN, hash_index;
     for (;;) {
         n_x = round(*(args->x) / CHUNK_SIZE);
         n_y = round(*(args->y) / CHUNK_SIZE);
@@ -288,6 +288,14 @@ void chunk_management(void *argsv) {
                         chunk = generate_chunk(chunk_pos);
                         world_chunk_insert(chunk);
                     }
+                }
+            }
+            for (hash_index = 0; hash_index < HASH_TABLE_SIZE; hash_index++) {
+                chunk_t *chunk = hash_array[hash_index];
+                if (chunk == NULL || chunk_pos_equal(chunk->chunk_pos, deleted->chunk_pos)) continue;
+                if (abs(chunk->chunk_pos.s_x / CHUNK_SIZE - n_x) + abs(chunk->chunk_pos.s_y / CHUNK_SIZE - n_y) + abs(chunk->chunk_pos.s_z / CHUNK_SIZE - n_z) > UNLOAD_MANHATTAN_DIST) {
+                    world_chunk_remove_c(chunk);
+                    free(chunk);
                 }
             }
             *(args->mesh) = world_full_mesh_assemble(args->size);
