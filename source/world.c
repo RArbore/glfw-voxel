@@ -194,6 +194,7 @@ float* world_full_mesh_assemble(int *size) {
         if (mesh_sizes[hash_index] == 0) continue;
         memcpy(vertices + set_size, meshes[hash_index], mesh_sizes[hash_index] * sizeof(float));
         set_size += mesh_sizes[hash_index];
+        free(meshes[hash_index]);
     }
 
     *size = total_size;
@@ -274,6 +275,7 @@ chunk_t* generate_chunk(chunk_pos_t chunk_pos) {
 void chunk_management(void *argsv) {
     management_args_t *args = argsv;
     int r_x, r_y, r_z, n_x, n_y, n_z, p_x = INT_MIN, p_y = INT_MIN, p_z = INT_MIN, hash_index;
+    float *prev2;
     for (;;) {
         n_x = round(*(args->x) / CHUNK_SIZE);
         n_y = round(*(args->y) / CHUNK_SIZE);
@@ -298,7 +300,15 @@ void chunk_management(void *argsv) {
                     free(chunk);
                 }
             }
-            *(args->mesh) = world_full_mesh_assemble(args->size);
+            float *prev, *swap;
+            prev2 = prev;
+            prev = *(args->mesh);
+            int n_size;
+            swap = world_full_mesh_assemble(&n_size);
+            *(args->size) = (n_size < *(args->size)) ? n_size : *(args->size);
+            *(args->mesh) = swap;
+            *(args->size) = n_size;
+            free(prev2);
             p_x = n_x;
             p_y = n_y;
             p_z = n_z;
