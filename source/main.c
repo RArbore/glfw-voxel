@@ -177,7 +177,7 @@ void tick(GLFWwindow *window) {
 
     gettimeofday(&stop, NULL);
     secs = (double)(stop.tv_usec - start.tv_usec) / 1000000 + (double)(stop.tv_sec - start.tv_sec);
-    printf("FPS: %f   X: %f   Y: %f   Z: %f   THETA: %f   PHI: %f\n",1.0/secs, x, y, z, theta, phi);
+    //printf("FPS: %f   X: %f   Y: %f   Z: %f   THETA: %f   PHI: %f\n",1.0/secs, x, y, z, theta, phi);
 }
 
 int main(int argc, char** argv) {
@@ -202,7 +202,7 @@ int main(int argc, char** argv) {
 
     glEnable(GL_CULL_FACE);
 
-    glEnable(GL_FRAMEBUFFER_SRGB);
+    // glEnable(GL_FRAMEBUFFER_SRGB);
 
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -224,7 +224,7 @@ int main(int argc, char** argv) {
     initialize_world();
 
     pthread_t world_manager;
-    pthread_create(&world_manager, NULL, chunk_management, &((management_args_t) {&world_vertices, &world_vertices_size}));
+    pthread_create(&world_manager, NULL, chunk_management, &((management_args_t) {&world_vertices, &world_vertices_size, &x, &y, &z}));
     //chunk_management(&world_vertices, &world_vertices_size);
 
     while (!glfwWindowShouldClose(window) && !glfwGetKey(window, GLFW_KEY_ESCAPE)) {

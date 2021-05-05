@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdio.h>
 #include <limits.h>
 #include <string.h>
@@ -272,14 +273,27 @@ chunk_t* generate_chunk(chunk_pos_t chunk_pos) {
 
 void chunk_management(void *argsv) {
     management_args_t *args = argsv;
-    for (int x = 0; x < 24; x++) {
-        for (int y = -2; y < 2; y++) {
-            for (int z = 0; z < 24; z++) {
-                chunk_pos_t chunk_pos = (chunk_pos_t) {x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE};
-                chunk_t *chunk = generate_chunk(chunk_pos);
-                world_chunk_insert(chunk);
+    int r_x, r_y, r_z, n_x, n_y, n_z, p_x = INT_MIN, p_y = INT_MIN, p_z = INT_MIN;
+    for (;;) {
+        n_x = round(*(args->x) / CHUNK_SIZE);
+        n_y = round(*(args->y) / CHUNK_SIZE);
+        n_z = round(*(args->z) / CHUNK_SIZE);
+        if (n_x != p_x || n_y != p_y || n_z != p_z) {
+            for (r_x = -RENDER_MANHATTAN_DIST; r_x <= RENDER_MANHATTAN_DIST; r_x++) {
+                for (r_y = -RENDER_MANHATTAN_DIST + abs(r_x); r_y <= RENDER_MANHATTAN_DIST - abs(r_x); r_y++) {
+                    for (r_z = -RENDER_MANHATTAN_DIST + abs(r_x) + abs(r_y); r_z <= RENDER_MANHATTAN_DIST - abs(r_x) - abs(r_y); r_z++) {
+                        chunk_pos_t chunk_pos = (chunk_pos_t) {(r_x + n_x) * CHUNK_SIZE, (r_y + n_y) * CHUNK_SIZE, (r_z + n_z) * CHUNK_SIZE};
+                        chunk_t *chunk = world_chunk_search(chunk_pos);
+                        if (chunk != NULL) continue;
+                        chunk = generate_chunk(chunk_pos);
+                        world_chunk_insert(chunk);
+                    }
+                }
             }
+            *(args->mesh) = world_full_mesh_assemble(args->size);
+            p_x = n_x;
+            p_y = n_y;
+            p_z = n_z;
         }
     }
-    *(args->mesh) = world_full_mesh_assemble(args->size);
 }
