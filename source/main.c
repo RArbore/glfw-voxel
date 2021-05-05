@@ -223,17 +223,9 @@ int main(int argc, char** argv) {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     initialize_world();
 
-    for (int x = 0; x < 24; x++) {
-        for (int y = -2; y < 2; y++) {
-            for (int z = 0; z < 24; z++) {
-                chunk_pos_t chunk_pos = (chunk_pos_t) {x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE};
-                chunk_t *chunk = generate_chunk(chunk_pos);
-                world_chunk_insert(chunk);
-            }
-        }
-    }
-
-    world_vertices = world_full_mesh_assemble(&world_vertices_size);
+    pthread_t world_manager;
+    pthread_create(&world_manager, NULL, chunk_management, &((management_args_t) {&world_vertices, &world_vertices_size}));
+    //chunk_management(&world_vertices, &world_vertices_size);
 
     while (!glfwWindowShouldClose(window) && !glfwGetKey(window, GLFW_KEY_ESCAPE)) {
         tick(window);

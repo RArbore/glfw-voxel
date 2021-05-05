@@ -270,6 +270,16 @@ chunk_t* generate_chunk(chunk_pos_t chunk_pos) {
     return chunk;
 }
 
-void chunk_management() {
-    
+void chunk_management(void *argsv) {
+    management_args_t *args = argsv;
+    for (int x = 0; x < 24; x++) {
+        for (int y = -2; y < 2; y++) {
+            for (int z = 0; z < 24; z++) {
+                chunk_pos_t chunk_pos = (chunk_pos_t) {x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE};
+                chunk_t *chunk = generate_chunk(chunk_pos);
+                world_chunk_insert(chunk);
+            }
+        }
+    }
+    *(args->mesh) = world_full_mesh_assemble(args->size);
 }
