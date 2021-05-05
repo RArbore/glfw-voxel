@@ -38,6 +38,10 @@ void set_vert_base_coords(int, int, float *, int, int, int);
 
 float* world_full_mesh_assemble(int *);
 
+float* world_chunk_mesh_assemble(int *, chunk_t *);
+
 chunk_t* generate_chunk(chunk_pos_t);
+
+void chunk_management();
 
 #endif // __WORLD_H_

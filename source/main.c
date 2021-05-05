@@ -1,4 +1,5 @@
 #include <sys/time.h>
+#include <pthread.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -223,7 +224,7 @@ int main(int argc, char** argv) {
     initialize_world();
 
     for (int x = 0; x < 24; x++) {
-        for (int y = 0; y < 1; y++) {
+        for (int y = -2; y < 2; y++) {
             for (int z = 0; z < 24; z++) {
                 chunk_pos_t chunk_pos = (chunk_pos_t) {x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE};
                 chunk_t *chunk = generate_chunk(chunk_pos);
