@@ -43,8 +43,8 @@ float* world_chunk_mesh_assemble(int *, chunk_t *);
 chunk_t* generate_chunk(chunk_pos_t);
 
 typedef struct management_args_s {
-    float **mesh;
-    int *size;
+    float **meshes;
+    int *sizes;
     float *x, *y, *z;
 } management_args_t;
 

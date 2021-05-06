@@ -250,7 +250,7 @@ float* world_chunk_mesh_assemble(int *size, chunk_t *chunk) {
         return NULL;
     }
     if (current_size != vertices_max_size) vertices = (float *) realloc(vertices, current_size * sizeof(float));
-    
+
     return vertices;
 }
 
@@ -274,12 +274,14 @@ chunk_t* generate_chunk(chunk_pos_t chunk_pos) {
 
 void chunk_management(void *argsv) {
     management_args_t *args = argsv;
-    int r_x, r_y, r_z, n_x, n_y, n_z, p_x = INT_MIN, p_y = INT_MIN, p_z = INT_MIN, hash_index;
-    float *prev2;
+    int r_x, r_y, r_z, n_x, n_y, n_z, p_x = INT_MIN, p_y = INT_MIN, p_z = INT_MIN, hash_index, chunk_size;
+    float *prev, *swap;
+        
     for (;;) {
         n_x = round(*(args->x) / CHUNK_SIZE);
         n_y = round(*(args->y) / CHUNK_SIZE);
         n_z = round(*(args->z) / CHUNK_SIZE);
+        
         if (n_x != p_x || n_y != p_y || n_z != p_z) {
             for (r_x = -RENDER_MANHATTAN_DIST; r_x <= RENDER_MANHATTAN_DIST; r_x++) {
                 for (r_y = -RENDER_MANHATTAN_DIST + abs(r_x); r_y <= RENDER_MANHATTAN_DIST - abs(r_x); r_y++) {
@@ -292,23 +294,26 @@ void chunk_management(void *argsv) {
                     }
                 }
             }
+            
             for (hash_index = 0; hash_index < HASH_TABLE_SIZE; hash_index++) {
                 chunk_t *chunk = hash_array[hash_index];
                 if (chunk == NULL || chunk_pos_equal(chunk->chunk_pos, deleted->chunk_pos)) continue;
                 if (abs(chunk->chunk_pos.s_x / CHUNK_SIZE - n_x) + abs(chunk->chunk_pos.s_y / CHUNK_SIZE - n_y) + abs(chunk->chunk_pos.s_z / CHUNK_SIZE - n_z) > UNLOAD_MANHATTAN_DIST) {
                     world_chunk_remove_c(chunk);
                     free(chunk);
+                    args->sizes[hash_index] = 0;
+                    free(args->meshes[hash_index]);
+                    args->meshes[hash_index] = NULL;
+                    continue;
                 }
+                prev = args->meshes[hash_index];
+                swap = world_chunk_mesh_assemble(&chunk_size, chunk);
+                args->sizes[hash_index] = (chunk_size < args->sizes[hash_index]) ? chunk_size : args->sizes[hash_index];
+                args->meshes[hash_index] = swap;
+                args->sizes[hash_index] = chunk_size;
+                free(prev);
             }
-            float *prev, *swap;
-            prev2 = prev;
-            prev = *(args->mesh);
-            int n_size;
-            swap = world_full_mesh_assemble(&n_size);
-            *(args->size) = (n_size < *(args->size)) ? n_size : *(args->size);
-            *(args->mesh) = swap;
-            *(args->size) = n_size;
-            free(prev2);
+
             p_x = n_x;
             p_y = n_y;
             p_z = n_z;

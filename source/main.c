@@ -16,8 +16,8 @@
 #include "../include/constants.h"
 #include "../include/world.h"
 
-float *world_vertices;
-int world_vertices_size;
+float *world_vertices[HASH_TABLE_SIZE];
+int world_vertices_size[HASH_TABLE_SIZE];
 
 int width, height;
 long counter = 0;
@@ -125,9 +125,12 @@ void render(GLFWwindow *window) {
     glUniform3fv(glGetUniformLocation(shader_program, "camera_pos"), 1, (float *) camera_pos);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glBufferData(GL_ARRAY_BUFFER, world_vertices_size * sizeof(float), world_vertices, GL_STREAM_DRAW);
-
-    glDrawArrays(GL_QUADS, 0, world_vertices_size / 8);
+    int hash_index;
+    for (hash_index = 0; hash_index < HASH_TABLE_SIZE; hash_index++) {
+        if (world_vertices_size[hash_index] == 0) continue;
+        glBufferData(GL_ARRAY_BUFFER, world_vertices_size[hash_index] * sizeof(float), world_vertices[hash_index], GL_STREAM_DRAW);
+        glDrawArrays(GL_QUADS, 0, world_vertices_size[hash_index] / 8);
+    }
 
     glfwSwapBuffers(window);
 }
@@ -224,7 +227,7 @@ int main(int argc, char** argv) {
     initialize_world();
 
     pthread_t world_manager;
-    pthread_create(&world_manager, NULL, chunk_management, &((management_args_t) {&world_vertices, &world_vertices_size, &x, &y, &z}));
+    pthread_create(&world_manager, NULL, chunk_management, &((management_args_t) {world_vertices, world_vertices_size, &x, &y, &z}));
     //chunk_management(&world_vertices, &world_vertices_size);
 
     while (!glfwWindowShouldClose(window) && !glfwGetKey(window, GLFW_KEY_ESCAPE)) {
