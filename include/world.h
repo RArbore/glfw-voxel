@@ -13,6 +13,7 @@ typedef struct chunk_pos_s {
 
 typedef struct chunk_s {
     chunk_pos_t chunk_pos;
+    int to_update;
     block_t blocks[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
 } chunk_t;
 

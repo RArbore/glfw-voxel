@@ -258,6 +258,7 @@ float* world_chunk_mesh_assemble(int *size, chunk_t *chunk) {
 chunk_t* generate_chunk(chunk_pos_t chunk_pos) {
     chunk_t *chunk = (chunk_t *) malloc(sizeof(chunk_t));
     chunk->chunk_pos = chunk_pos;
+    chunk->to_update = 1;
     int r_x, r_y, r_z;
     for (r_x = 0; r_x < CHUNK_SIZE; r_x++) {
         for (r_z = 0; r_z < CHUNK_SIZE; r_z++) {
@@ -276,32 +277,38 @@ chunk_t* generate_chunk(chunk_pos_t chunk_pos) {
 void mesh_thread_worker(void *argsv) {
     mesh_thread_args_t *targs = argsv;
     management_args_t *args = targs->management_args;
-    int hash_index, start_index = targs->thread_id*HASH_TABLE_SIZE/NUM_WORKER_THREADS, chunk_size;
+    int hash_index, start_index = targs->thread_id*HASH_TABLE_SIZE/NUM_WORKER_THREADS, chunk_size, neighbor_num;
     float *prev, *swap;
     for (hash_index = start_index; hash_index < start_index + HASH_TABLE_SIZE / NUM_WORKER_THREADS; hash_index++) {
         chunk_t *chunk = hash_array[hash_index];
         if (chunk == NULL || chunk_pos_equal(chunk->chunk_pos, deleted->chunk_pos)) continue;
         if (abs(chunk->chunk_pos.s_x / CHUNK_SIZE - targs->n_x) + abs(chunk->chunk_pos.s_y / CHUNK_SIZE - targs->n_y) + abs(chunk->chunk_pos.s_z / CHUNK_SIZE - targs->n_z) > UNLOAD_MANHATTAN_DIST) {
             world_chunk_remove_c(chunk);
+            for (neighbor_num = 0; neighbor_num < 6; neighbor_num++) {
+                chunk_t *neighbor = world_chunk_search((chunk_pos_t) {chunk->chunk_pos.s_x + neighbor_offsets[neighbor_num][0] * CHUNK_SIZE, chunk->chunk_pos.s_y + neighbor_offsets[neighbor_num][1] * CHUNK_SIZE, chunk->chunk_pos.s_z + neighbor_offsets[neighbor_num][2] * CHUNK_SIZE});
+                if (neighbor == NULL) continue;
+                neighbor->to_update = 1;
+            }
             free(chunk);
             args->sizes[hash_index] = 0;
             free(args->meshes[hash_index]);
             args->meshes[hash_index] = NULL;
             continue;
         }
+        if (chunk->to_update == 0) continue;
         prev = args->meshes[hash_index];
         swap = world_chunk_mesh_assemble(&chunk_size, chunk);
         args->sizes[hash_index] = (chunk_size < args->sizes[hash_index]) ? chunk_size : args->sizes[hash_index];
         args->meshes[hash_index] = swap;
         args->sizes[hash_index] = chunk_size;
         free(prev);
+        chunk->to_update = 0;
     }
 }
 
 void chunk_management(void *argsv) {
     management_args_t *args = argsv;
-    int r_x, r_y, r_z, n_x, n_y, n_z, p_x = INT_MIN, p_y = INT_MIN, p_z = INT_MIN, hash_index, chunk_size;
-    float *prev, *swap;
+    int r_x, r_y, r_z, n_x, n_y, n_z, p_x = INT_MIN, p_y = INT_MIN, p_z = INT_MIN, neighbor_num;
         
     for (;;) {
         n_x = round(*(args->x) / CHUNK_SIZE);
@@ -317,6 +324,11 @@ void chunk_management(void *argsv) {
                         if (chunk != NULL) continue;
                         chunk = generate_chunk(chunk_pos);
                         world_chunk_insert(chunk);
+                        for (neighbor_num = 0; neighbor_num < 6; neighbor_num++) {
+                            chunk_t *neighbor = world_chunk_search((chunk_pos_t) {chunk_pos.s_x + neighbor_offsets[neighbor_num][0] * CHUNK_SIZE, chunk_pos.s_y + neighbor_offsets[neighbor_num][1] * CHUNK_SIZE, chunk_pos.s_z + neighbor_offsets[neighbor_num][2] * CHUNK_SIZE});
+                            if (neighbor == NULL) continue;
+                            neighbor->to_update = 1;
+                        }
                     }
                 }
             }
