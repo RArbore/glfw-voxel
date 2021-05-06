@@ -48,6 +48,13 @@ typedef struct management_args_s {
     float *x, *y, *z;
 } management_args_t;
 
+typedef struct mesh_thread_args_s {
+    management_args_t *management_args;
+    int thread_id, n_x, n_y, n_z;
+} mesh_thread_args_t;
+
 void chunk_management(void *);
+
+void mesh_thread_worker(void *);
 
 #endif // __WORLD_H_

@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <pthread.h>
 
 #include "../include/texture.h"
 #include "../include/constants.h"
@@ -272,6 +273,31 @@ chunk_t* generate_chunk(chunk_pos_t chunk_pos) {
     return chunk;
 }
 
+void mesh_thread_worker(void *argsv) {
+    mesh_thread_args_t *targs = argsv;
+    management_args_t *args = targs->management_args;
+    int hash_index, start_index = targs->thread_id*HASH_TABLE_SIZE/NUM_WORKER_THREADS, chunk_size;
+    float *prev, *swap;
+    for (hash_index = start_index; hash_index < start_index + HASH_TABLE_SIZE / NUM_WORKER_THREADS; hash_index++) {
+        chunk_t *chunk = hash_array[hash_index];
+        if (chunk == NULL || chunk_pos_equal(chunk->chunk_pos, deleted->chunk_pos)) continue;
+        if (abs(chunk->chunk_pos.s_x / CHUNK_SIZE - targs->n_x) + abs(chunk->chunk_pos.s_y / CHUNK_SIZE - targs->n_y) + abs(chunk->chunk_pos.s_z / CHUNK_SIZE - targs->n_z) > UNLOAD_MANHATTAN_DIST) {
+            world_chunk_remove_c(chunk);
+            free(chunk);
+            args->sizes[hash_index] = 0;
+            free(args->meshes[hash_index]);
+            args->meshes[hash_index] = NULL;
+            continue;
+        }
+        prev = args->meshes[hash_index];
+        swap = world_chunk_mesh_assemble(&chunk_size, chunk);
+        args->sizes[hash_index] = (chunk_size < args->sizes[hash_index]) ? chunk_size : args->sizes[hash_index];
+        args->meshes[hash_index] = swap;
+        args->sizes[hash_index] = chunk_size;
+        free(prev);
+    }
+}
+
 void chunk_management(void *argsv) {
     management_args_t *args = argsv;
     int r_x, r_y, r_z, n_x, n_y, n_z, p_x = INT_MIN, p_y = INT_MIN, p_z = INT_MIN, hash_index, chunk_size;
@@ -294,24 +320,22 @@ void chunk_management(void *argsv) {
                     }
                 }
             }
-            
-            for (hash_index = 0; hash_index < HASH_TABLE_SIZE; hash_index++) {
-                chunk_t *chunk = hash_array[hash_index];
-                if (chunk == NULL || chunk_pos_equal(chunk->chunk_pos, deleted->chunk_pos)) continue;
-                if (abs(chunk->chunk_pos.s_x / CHUNK_SIZE - n_x) + abs(chunk->chunk_pos.s_y / CHUNK_SIZE - n_y) + abs(chunk->chunk_pos.s_z / CHUNK_SIZE - n_z) > UNLOAD_MANHATTAN_DIST) {
-                    world_chunk_remove_c(chunk);
-                    free(chunk);
-                    args->sizes[hash_index] = 0;
-                    free(args->meshes[hash_index]);
-                    args->meshes[hash_index] = NULL;
-                    continue;
-                }
-                prev = args->meshes[hash_index];
-                swap = world_chunk_mesh_assemble(&chunk_size, chunk);
-                args->sizes[hash_index] = (chunk_size < args->sizes[hash_index]) ? chunk_size : args->sizes[hash_index];
-                args->meshes[hash_index] = swap;
-                args->sizes[hash_index] = chunk_size;
-                free(prev);
+
+            int thread_id;
+            pthread_t threads[NUM_WORKER_THREADS];
+            mesh_thread_args_t *mesh_thread_args[NUM_WORKER_THREADS];
+            for (thread_id = 0; thread_id < NUM_WORKER_THREADS; thread_id++) {
+                mesh_thread_args[thread_id] = (mesh_thread_args_t *) malloc(sizeof(mesh_thread_args_t));
+                mesh_thread_args[thread_id]->management_args = args;
+                mesh_thread_args[thread_id]->thread_id = thread_id;
+                mesh_thread_args[thread_id]->n_x = n_x;
+                mesh_thread_args[thread_id]->n_y = n_y;
+                mesh_thread_args[thread_id]->n_z = n_z;
+                pthread_create(&threads[thread_id], NULL, mesh_thread_worker, mesh_thread_args[thread_id]);
+            }
+            for (thread_id = 0; thread_id < NUM_WORKER_THREADS; thread_id++) {
+                pthread_join(threads[thread_id], NULL);
+                free(mesh_thread_args[thread_id]);
             }
 
             p_x = n_x;
