@@ -27,7 +27,7 @@ GLint pos_attrib, col_attrib, tex_attrib;
 
 mat4 view_mat, proj_mat;
 
-float x, y, z, theta, phi = PI/2;
+float x, y, z, theta, phi = PI/2, dt = 0;
 
 void error_callback(int error, const char* description) {
     fprintf(stderr, "Error #%d: %s\n", error, description);
@@ -138,31 +138,31 @@ void render(GLFWwindow *window) {
 void handle_input(GLFWwindow *window) {
     glfwPollEvents();
     if (glfwGetKey(window, GLFW_KEY_W)) {
-        x += MOVE_SPEED * cos(theta);
-        z += MOVE_SPEED * sin(theta);
+        x += MOVE_SPEED * cos(theta) * dt;
+        z += MOVE_SPEED * sin(theta) * dt;
     }
     if (glfwGetKey(window, GLFW_KEY_A)) {
-        x += MOVE_SPEED * sin(theta);
-        z -= MOVE_SPEED * cos(theta);
+        x += MOVE_SPEED * sin(theta) * dt;
+        z -= MOVE_SPEED * cos(theta) * dt;
     }
     if (glfwGetKey(window, GLFW_KEY_S)) {
-        x -= MOVE_SPEED * cos(theta);
-        z -= MOVE_SPEED * sin(theta);
+        x -= MOVE_SPEED * cos(theta) * dt;
+        z -= MOVE_SPEED * sin(theta) * dt;
     }
     if (glfwGetKey(window, GLFW_KEY_D)) {
-        x -= MOVE_SPEED * sin(theta);
-        z += MOVE_SPEED * cos(theta);
+        x -= MOVE_SPEED * sin(theta) * dt;
+        z += MOVE_SPEED * cos(theta) * dt;
     }
     if (glfwGetKey(window, GLFW_KEY_SPACE)) {
-        y += MOVE_SPEED;
+        y += MOVE_SPEED * dt;
     }
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT)) {
-        y -= MOVE_SPEED;
+        y -= MOVE_SPEED * dt;
     }
-    if (glfwGetKey(window, GLFW_KEY_K)) phi -= ANGLE_SPEED;
-    if (glfwGetKey(window, GLFW_KEY_H)) theta -= ANGLE_SPEED;
-    if (glfwGetKey(window, GLFW_KEY_J)) phi += ANGLE_SPEED;
-    if (glfwGetKey(window, GLFW_KEY_L)) theta += ANGLE_SPEED;
+    if (glfwGetKey(window, GLFW_KEY_K)) phi -= ANGLE_SPEED * dt;
+    if (glfwGetKey(window, GLFW_KEY_H)) theta -= ANGLE_SPEED * dt;
+    if (glfwGetKey(window, GLFW_KEY_J)) phi += ANGLE_SPEED * dt;
+    if (glfwGetKey(window, GLFW_KEY_L)) theta += ANGLE_SPEED * dt;
     if (phi < MIN_PHI) phi = MIN_PHI;
     if (phi > PI-MIN_PHI) phi = PI-MIN_PHI;
     while (theta < 0) theta += 2*PI;
@@ -180,7 +180,8 @@ void tick(GLFWwindow *window) {
 
     gettimeofday(&stop, NULL);
     secs = (double)(stop.tv_usec - start.tv_usec) / 1000000 + (double)(stop.tv_sec - start.tv_sec);
-    printf("FPS: %f   X: %f   Y: %f   Z: %f   THETA: %f   PHI: %f\n",1.0/secs, x, y, z, theta, phi);
+    dt = secs;
+    printf("FPS: %f   X: %f   Y: %f   Z: %f   THETA: %f   PHI: %f\n", 1.0/secs, x, y, z, theta, phi);
 }
 
 int main(int argc, char** argv) {

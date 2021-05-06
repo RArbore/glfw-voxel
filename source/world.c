@@ -262,7 +262,8 @@ chunk_t* generate_chunk(chunk_pos_t chunk_pos) {
     int r_x, r_y, r_z;
     for (r_x = 0; r_x < CHUNK_SIZE; r_x++) {
         for (r_z = 0; r_z < CHUNK_SIZE; r_z++) {
-            double height = open_simplex_noise2(ctx, (float) (r_x + chunk_pos.s_x) / 16.0, (float) (r_z + chunk_pos.s_z) / 16.0)*8+8; 
+            double height = open_simplex_noise2(ctx, (float) (r_x + chunk_pos.s_x) / 16.0, (float) (r_z + chunk_pos.s_z) / 16.0)*8+8
+                ;//+ open_simplex_noise2(ctx, (float) (r_x + chunk_pos.s_x + 64*247) / 32.0, (float) (r_z + chunk_pos.s_z - 64*1237) / 32.0)*16; 
             for (r_y = 0; r_y < CHUNK_SIZE; r_y++) {
                 int to_create = 0;
                 if (r_y + chunk_pos.s_y < height - 1) to_create = 2;
