@@ -108,7 +108,7 @@ int half_space(vec4 plane, vec3 pos) {
 
 int check_frustum(chunk_pos_t chunk_pos, mat4 proj_view) {
     int out_frus[6] = {0, 0, 0, 0, 0, 1};
-    vec4 near_plane = {cos(theta)*sin(phi), cos(phi), sin(theta)*sin(phi), cos(theta)*sin(phi) * x + cos(phi) * y + sin(theta)*sin(phi) * z};
+    vec4 near_plane = {cos(theta)*sin(phi), cos(phi), sin(theta)*sin(phi), cos(theta)*sin(phi) * (x) + cos(phi) * (y) + sin(theta)*sin(phi) * (z)};
     vec4 top_plane = {cos(theta)*sin(phi + PI/2 - FOV/2), cos(phi + PI/2 - FOV/2), sin(theta)*sin(phi + PI/2 - FOV/2), cos(theta)*sin(phi + PI/2 - FOV/2) * x + cos(phi + PI/2 - FOV/2) * y + sin(theta)*sin(phi + PI/2 - FOV/2) * z};
     vec4 bottom_plane = {cos(theta)*sin(phi - PI/2 + FOV/2), cos(phi - PI/2 + FOV/2), sin(theta)*sin(phi - PI/2 + FOV/2), cos(theta)*sin(phi - PI/2 + FOV/2) * x + cos(phi - PI/2 + FOV/2) * y + sin(theta)*sin(phi - PI/2 + FOV/2) * z};
     float FOVX = 2 * atan(tan(FOV * 0.5) * (((float) width) / ((float) height)));

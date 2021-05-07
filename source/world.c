@@ -255,6 +255,10 @@ float* world_chunk_mesh_assemble(int *size, chunk_t *chunk) {
     return vertices;
 }
 
+float softmax(float h1, float h2, float s) {
+    return (h1*exp(s*h1)+h2*exp(s*h2))/(exp(s*h1)+exp(s*h2));
+}
+
 chunk_t* generate_chunk(chunk_pos_t chunk_pos) {
     chunk_t *chunk = (chunk_t *) malloc(sizeof(chunk_t));
     chunk->chunk_pos = chunk_pos;
@@ -262,8 +266,14 @@ chunk_t* generate_chunk(chunk_pos_t chunk_pos) {
     int r_x, r_y, r_z;
     for (r_x = 0; r_x < CHUNK_SIZE; r_x++) {
         for (r_z = 0; r_z < CHUNK_SIZE; r_z++) {
-            double height = open_simplex_noise2(ctx, (float) (r_x + chunk_pos.s_x) / 16.0, (float) (r_z + chunk_pos.s_z) / 16.0)*8+8;
-            //+ open_simplex_noise2(ctx, (float) (r_x + chunk_pos.s_x + 64*247) / 32.0, (float) (r_z + chunk_pos.s_z - 64*1237) / 32.0)*16; 
+            float h1 = open_simplex_noise2(ctx, (float) (r_x + chunk_pos.s_x) / 64.0, (float) (r_z + chunk_pos.s_z) / 64.0)*8+8;
+            float h2 = open_simplex_noise2(ctx, (float) (r_x + chunk_pos.s_x + 64*247) / 48.0, (float) (r_z + chunk_pos.s_z - 64*1237) / 48.0)*32;
+            float h3 = open_simplex_noise2(ctx, (float) (r_x + chunk_pos.s_x + 64*746) / 256.0, (float) (r_z + chunk_pos.s_z + 64*34) / 256.0)*784-256;
+            float h4 = open_simplex_noise2(ctx, (float) (r_x + chunk_pos.s_x - 2147) / 16.0, (float) (r_z + chunk_pos.s_z + 1285) / 16.0)*2;
+            float s1 = 0.01, s2 = 0.004, s3 = 0.01;
+            float height = softmax(h1, h2, s1);
+            height = softmax(height, h3, s2);
+            height = softmax(height, h4, s3);
             for (r_y = 0; r_y < CHUNK_SIZE; r_y++) {
                 int to_create = 0;
                 if (r_y + chunk_pos.s_y < height - 1) to_create = 2;
