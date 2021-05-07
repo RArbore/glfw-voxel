@@ -35,7 +35,7 @@ void error_callback(int error, const char* description) {
 }
 
 void init_camera() {
-    glm_perspective(1.2, ((float) width) / ((float) height), 0.1, 1000.0, proj_mat);
+    glm_perspective(FOV, ((float) width) / ((float) height), 0.1, 1000.0, proj_mat);
 }
 
 void resize_callback(GLFWwindow* window, int iwidth, int iheight) {
@@ -106,17 +106,23 @@ int half_space(vec4 plane, vec3 pos) {
     return glm_vec4_dot(n, diff) < 0;
 }
 
-int check_frustrum(chunk_pos_t chunk_pos, mat4 pv) {
-    int out_frus[6] = {0, 1, 1, 1, 1, 1};
-    //vec4 near_plane = {pv[3][0] + pv[2][0], pv[3][1] + pv[2][1], pv[3][2] + pv[2][2], pv[3][3] + pv[2][3]};
-    vec4 near_plane = {cos(theta)*sin(phi), cos(phi), sin(theta)*sin(phi),
-        cos(theta)*sin(phi) * x + cos(phi) * y + sin(theta)*sin(phi) * z
-    };
+int check_frustum(chunk_pos_t chunk_pos, mat4 proj_view) {
+    int out_frus[6] = {0, 0, 0, 0, 0, 1};
+    vec4 near_plane = {cos(theta)*sin(phi), cos(phi), sin(theta)*sin(phi), cos(theta)*sin(phi) * x + cos(phi) * y + sin(theta)*sin(phi) * z};
+    vec4 top_plane = {cos(theta)*sin(phi + PI/2 - FOV/2), cos(phi + PI/2 - FOV/2), sin(theta)*sin(phi + PI/2 - FOV/2), cos(theta)*sin(phi + PI/2 - FOV/2) * x + cos(phi + PI/2 - FOV/2) * y + sin(theta)*sin(phi + PI/2 - FOV/2) * z};
+    vec4 bottom_plane = {cos(theta)*sin(phi - PI/2 + FOV/2), cos(phi - PI/2 + FOV/2), sin(theta)*sin(phi - PI/2 + FOV/2), cos(theta)*sin(phi - PI/2 + FOV/2) * x + cos(phi - PI/2 + FOV/2) * y + sin(theta)*sin(phi - PI/2 + FOV/2) * z};
+    float FOVX = 2 * atan(tan(FOV * 0.5) * (((float) width) / ((float) height)));
+    vec4 left_plane = {cos(theta + PI/2 - FOVX/2)*sin(phi), cos(phi), sin(theta + PI/2 - FOVX/2)*sin(phi), cos(theta + PI/2 - FOVX/2)*sin(phi) * x + cos(phi) * y + sin(theta + PI/2 - FOVX/2)*sin(phi) * z};
+    vec4 right_plane = {cos(theta - PI/2 + FOVX/2)*sin(phi), cos(phi), sin(theta - PI/2 + FOVX/2)*sin(phi), cos(theta - PI/2 + FOVX/2)*sin(phi) * x + cos(phi) * y + sin(theta - PI/2 + FOVX/2)*sin(phi) * z};
     int p_x, p_y, p_z;
     for (p_x = chunk_pos.s_x; p_x <= chunk_pos.s_x + CHUNK_SIZE; p_x += CHUNK_SIZE) {
         for (p_y = chunk_pos.s_y; p_y <= chunk_pos.s_y + CHUNK_SIZE; p_y += CHUNK_SIZE) {
             for (p_z = chunk_pos.s_z; p_z <= chunk_pos.s_z + CHUNK_SIZE; p_z += CHUNK_SIZE) {
                 out_frus[0] += half_space(near_plane, (vec3){p_x, p_y, p_z});
+                out_frus[1] += half_space(top_plane, (vec3){p_x, p_y, p_z});
+                out_frus[2] += half_space(bottom_plane, (vec3){p_x, p_y, p_z});
+                out_frus[3] += half_space(left_plane, (vec3){p_x, p_y, p_z});
+                out_frus[4] += half_space(right_plane, (vec3){p_x, p_y, p_z});
             }
         }
     }
@@ -154,7 +160,7 @@ void render(GLFWwindow *window) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     int hash_index;
     for (hash_index = 0; hash_index < HASH_TABLE_SIZE; hash_index++) {
-        if (world_vertices_size[hash_index] == 0 || check_frustrum(world_chunk_positions[hash_index], proj_view)) continue;
+        if (world_vertices_size[hash_index] == 0 || check_frustum(world_chunk_positions[hash_index], proj_view)) continue;
         glBufferData(GL_ARRAY_BUFFER, world_vertices_size[hash_index] * sizeof(float), world_vertices[hash_index], GL_STREAM_DRAW);
         glDrawArrays(GL_QUADS, 0, world_vertices_size[hash_index] / 8);
     }
