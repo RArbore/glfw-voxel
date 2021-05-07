@@ -302,6 +302,7 @@ void mesh_thread_worker(void *argsv) {
         args->sizes[hash_index] = (chunk_size < args->sizes[hash_index]) ? chunk_size : args->sizes[hash_index];
         args->meshes[hash_index] = swap;
         args->sizes[hash_index] = chunk_size;
+        args->positions[hash_index] = chunk->chunk_pos;
         free(prev);
         chunk->to_update = 0;
     }

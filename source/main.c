@@ -18,6 +18,7 @@
 
 float *world_vertices[HASH_TABLE_SIZE];
 int world_vertices_size[HASH_TABLE_SIZE];
+chunk_pos_t world_chunk_positions[HASH_TABLE_SIZE];
 
 int width, height;
 long counter = 0;
@@ -27,7 +28,7 @@ GLint pos_attrib, col_attrib, tex_attrib;
 
 mat4 view_mat, proj_mat;
 
-float x, y, z, theta, phi = PI/2, dt = 0;
+float x, y, z, theta, phi = PI/2, dt = 0, dt_log[FPS_AVG_INTERVAL];
 
 void error_callback(int error, const char* description) {
     fprintf(stderr, "Error #%d: %s\n", error, description);
@@ -51,7 +52,6 @@ GLFWwindow* initialize_window() {
     if (window) {
         glfwShowWindow(window);
         glfwMakeContextCurrent(window);
-        gladLoadGL();
         glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     }
     return window;
@@ -99,6 +99,30 @@ void load_shaders() {
     glVertexAttribPointer(tex_attrib, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) (6 * sizeof(float)));
 }
 
+int half_space(vec4 plane, vec3 pos) {
+    vec4 p_plane = {plane[0], plane[1], plane[2], 1.0}, n = {plane[0], plane[1], plane[2], 0.0}, diff;
+    glm_vec3_scale(p_plane, plane[3], p_plane);
+    glm_vec3_sub(p_plane, (vec4){pos[0], pos[1], pos[2], 1.0}, diff);
+    return glm_vec4_dot(n, diff) < 0;
+}
+
+int check_frustrum(chunk_pos_t chunk_pos, mat4 pv) {
+    int out_frus[6] = {0, 1, 1, 1, 1, 1};
+    //vec4 near_plane = {pv[3][0] + pv[2][0], pv[3][1] + pv[2][1], pv[3][2] + pv[2][2], pv[3][3] + pv[2][3]};
+    vec4 near_plane = {cos(theta)*sin(phi), cos(phi), sin(theta)*sin(phi),
+        cos(theta)*sin(phi) * x + cos(phi) * y + sin(theta)*sin(phi) * z
+    };
+    int p_x, p_y, p_z;
+    for (p_x = chunk_pos.s_x; p_x <= chunk_pos.s_x + CHUNK_SIZE; p_x += CHUNK_SIZE) {
+        for (p_y = chunk_pos.s_y; p_y <= chunk_pos.s_y + CHUNK_SIZE; p_y += CHUNK_SIZE) {
+            for (p_z = chunk_pos.s_z; p_z <= chunk_pos.s_z + CHUNK_SIZE; p_z += CHUNK_SIZE) {
+                out_frus[0] += half_space(near_plane, (vec3){p_x, p_y, p_z});
+            }
+        }
+    }
+    return out_frus[0] * out_frus[1] * out_frus[2] * out_frus[3] * out_frus[4] * out_frus[5] == 0;
+}
+
 void render(GLFWwindow *window) {
     mat4 world_mat;
     glm_mat4_identity(world_mat);
@@ -124,10 +148,13 @@ void render(GLFWwindow *window) {
     glUniform3fv(glGetUniformLocation(shader_program, "point_light[0].attenuation"), 1, (float *) point_light + 12);
     glUniform3fv(glGetUniformLocation(shader_program, "camera_pos"), 1, (float *) camera_pos);
 
+    mat4 proj_view;
+    glm_mat4_mul(proj_mat, view_mat, proj_view);
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     int hash_index;
     for (hash_index = 0; hash_index < HASH_TABLE_SIZE; hash_index++) {
-        if (world_vertices_size[hash_index] == 0) continue;
+        if (world_vertices_size[hash_index] == 0 || check_frustrum(world_chunk_positions[hash_index], proj_view)) continue;
         glBufferData(GL_ARRAY_BUFFER, world_vertices_size[hash_index] * sizeof(float), world_vertices[hash_index], GL_STREAM_DRAW);
         glDrawArrays(GL_QUADS, 0, world_vertices_size[hash_index] / 8);
     }
@@ -181,7 +208,13 @@ void tick(GLFWwindow *window) {
     gettimeofday(&stop, NULL);
     secs = (double)(stop.tv_usec - start.tv_usec) / 1000000 + (double)(stop.tv_sec - start.tv_sec);
     dt = secs;
-    printf("FPS: %f   X: %f   Y: %f   Z: %f   THETA: %f   PHI: %f\n", 1.0/secs, x, y, z, theta, phi);
+    dt_log[counter % FPS_AVG_INTERVAL] = dt;
+    if (counter % FPS_AVG_INTERVAL == 0) {
+        float avg = 0;
+        int i;
+        for (i = 0; i < FPS_AVG_INTERVAL; i++) avg += dt_log[i]/FPS_AVG_INTERVAL;
+        printf("FPS: %f  X: %f  Y: %f  Z: %f  THETA: %f  PHI: %f\n", 1.0/avg, x, y, z, theta, phi);
+    }
 }
 
 int main(int argc, char** argv) {
@@ -228,7 +261,7 @@ int main(int argc, char** argv) {
     initialize_world();
 
     pthread_t world_manager;
-    pthread_create(&world_manager, NULL, chunk_management, &((management_args_t) {world_vertices, world_vertices_size, &x, &y, &z}));
+    pthread_create(&world_manager, NULL, chunk_management, &((management_args_t) {world_vertices, world_vertices_size, world_chunk_positions, &x, &y, &z}));
     //chunk_management(&world_vertices, &world_vertices_size);
 
     while (!glfwWindowShouldClose(window) && !glfwGetKey(window, GLFW_KEY_ESCAPE)) {

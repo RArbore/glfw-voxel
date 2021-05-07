@@ -8,6 +8,7 @@
 #define ANGLE_SPEED 3.0
 #define MOVE_SPEED 100.0
 #define MIN_PHI 0.01
+#define FPS_AVG_INTERVAL 100
 
 #define CHUNK_SIZE 16
 #define HASH_TABLE_SIZE 65536

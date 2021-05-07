@@ -46,6 +46,7 @@ chunk_t* generate_chunk(chunk_pos_t);
 typedef struct management_args_s {
     float **meshes;
     int *sizes;
+    chunk_pos_t *positions;
     float *x, *y, *z;
 } management_args_t;
 
